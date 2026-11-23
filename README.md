@@ -1,49 +1,51 @@
-# PromptTree
+# Prompt Tree
 
-[English](README.en.md)
+[English](README.en.md) · [运行示例](#先看一棵树) · [贡献指南](CONTRIBUTING.md)
 
-把 PromptTree 放进业务项目后，Codex 会从真实调用和现有样例中找出值得调的 Prompt，设计评测，再把每个最小措辞改动作为一个分支。离线报告可以点开每个节点，查看相对父版本的差异、失败依据和验证结果。
+用项目自己的样例，找出哪一处 Prompt 改动值得保留。这个 Codex Skill 会追踪实际发给模型的消息，跑出基线，再把每个改动假设画成一个分支。点开离线报告里的节点，就能看到改了哪句话、哪条失败样例促成了修改，以及验证分数有没有提高。
 
-## 装进目标项目
+## 先看一棵树
 
-需要 Codex 和 Node.js 22+。从本仓库根目录执行以下命令，将目标路径替换为你的项目。复制整个技能目录，脚本、模板和报告资源都在里面。
+一个工单可以有多个标签。下面三种措辞使用同一批合成工单评测，分数表示验证集中标签集合完全正确的工单数。
+
+```text
+基线  “a matching label”             1/2
+├──   “a specific matching label”    1/2
+└──   “all matching labels”          2/2
+```
+
+在本仓库根目录运行以下命令，打开输出中 `report` 指向的 HTML 文件，即可查看完整的树和逐行差异。示例使用本地模拟模型，无需 API 密钥。 [示例实现与评分规则](examples/label-routing/README.md)
 
 ```sh
+npm run demo
+```
+
+## 安装到业务项目
+
+需要 Codex 和 Node.js 22+。下面的命令从私有仓库克隆工具，并把完整 Skill 放入目标项目。将 `/path/to/your-project` 换成业务项目的路径。
+
+```sh
+git clone https://github.com/acse-bq23/prompt-tree.git
+cd prompt-tree
 mkdir -p /path/to/your-project/.agents/skills
 cp -R skills/prompttree /path/to/your-project/.agents/skills/
 ```
 
-在目标项目打开 Codex，输入：
+在目标项目中打开 Codex，输入：
 
-> 用 $prompttree 找到这个项目里最值得优化的 Prompt。用现有样例设计测试，需要我定的业务标准再问我。确认后自动跑基线、比较最小改动分支并生成 Prompt Tree。
+> 用 $prompttree 找一个值得优化的 Prompt，用现有样例设计测试。需要我定的业务标准再问我，确认后比较最小改动并生成 Prompt Tree。
 
-Codex 会追踪最终发给模型的消息，核对样例与预期结果，复用或编写项目评测适配器。仓库已有的明确规则可直接引用。遇到会改变评分的歧义，例如「多标签漏掉一个，按整单失败还是给部分分」，才需要业务判断。付费模型调用使用已授权预算。
+## 它如何决定保留哪一版
 
-## 一条分支代表什么
+1. **选点与评分。** Codex 沿业务调用定位 Prompt，检查已有样例和预期结果，复用或编写评测适配器。例如，规范没有定义「漏掉一个标签是否给部分分」时，它会先问你。付费评测使用已授权预算。
+2. **固定基线。** 复用现有探索集与验证集，或按工单、会话等独立单位分组切分。缺少可判定的预期或独立样例时，接入计划会列出具体缺口。
+3. **逐个比较。** 每条边引用父版本的探索集失败和一条已确认规则。CLI 在运行前检查修改只涉及一个可编辑字段、一条消息和一处连续行差异。验证集持平可保留基线。报告记录探索结果，正式验收需要另行测试。
 
-每条边对应父版本上的一个假设，引用一次 Search 失败和已确认规则。CLI 在调用模型前检查改动只落在一个可编辑字段、一条消息和一个连续的行差异内。最小措辞的语义由 Codex 审阅。独立假设从同一父节点分叉，累积修改从上一个有效节点继续。验证集表现持平时可保留基线。Probe 提供探索结果，独立验收需另外执行。
+## 项目导航
 
-输入可以是已有切分，也可以是尚未划分的样例池。后者可按工单、会话等分组，固定 Search 与 Validation。缺少可判定的预期或独立样例时，接入计划会列明缺口。
-
-## 跑一个零费用示例
-
-```sh
-node examples/label-routing/demo.cjs
-```
-
-示例把 6 条合成样例按工单分组，在同一基线上比较两种措辞。打开命令打印的 `report` 路径查看树。报告、`evolution.json`、选中 Prompt 与摘要保存在实验的 `output/` 中。业务代码保持由项目自行管理。
-
-## 开发与验证
-
-通用工具使用 Node.js 标准库。发现命令在 Git 仓库中使用 Git，普通目录需要 ripgrep。适配器沿用业务项目原有的运行环境。
-
-```sh
-node skills/prompttree/scripts/prompttree.cjs --help
-node skills/prompttree/scripts/prompttree.cjs discover --workspace .
-node --test tests/*.test.cjs
-```
-
-- [首次接入流程](skills/prompttree/references/intake.md)
-- [数据、执行器和结果合同](skills/prompttree/references/contracts.md)
-- [中断恢复与预算](skills/prompttree/references/recovery.md)
-- [合成工单示例及评分规则](examples/label-routing/README.md)
+| 想做什么 | 入口 |
+| --- | --- |
+| 了解 Codex 首次进入项目时的工作流程 | [首次接入](skills/prompttree/references/intake.md) |
+| 接入自己的执行器、样例和评分器 | [配置与结果合同](skills/prompttree/references/contracts.md) |
+| 查看预算或继续中断的实验 | [恢复与预算](skills/prompttree/references/recovery.md) |
+| 修改源码、运行测试或报告问题 | [贡献指南](CONTRIBUTING.md) |

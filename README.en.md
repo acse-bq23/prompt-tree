@@ -1,49 +1,51 @@
-# PromptTree
+# Prompt Tree
 
-[简体中文](README.md)
+[简体中文](README.md) · [Run the example](#see-a-tree) · [Contributing](CONTRIBUTING.md)
 
-PromptTree is a repository-scoped Codex skill for improving prompts with a project's own examples. Codex traces a live prompt to its call site, designs an evaluation, and tests small wording changes. Each branch in the offline report shows the edit against its parent, the failure that motivated it, and the resulting scores.
+Use your project's own examples to decide which prompt edit to keep. This Codex skill traces the messages your application sends to its model, runs a baseline, and tests each hypothesis on a separate branch. Open a node in the offline report to see the wording change, the failure that motivated it, and the validation score.
+
+## See a tree
+
+A ticket can have several labels. These three wordings were evaluated on the same synthetic tickets. The score counts validation tickets whose predicted labels exactly match the expected set.
+
+```text
+Baseline  “a matching label”             1/2
+├──       “a specific matching label”    1/2
+└──       “all matching labels”          2/2
+```
+
+From the repository root, run the demo and open the HTML file at the printed `report` path to inspect the tree and its diffs. The example uses a local mock and needs no API key. [Example and scoring rule](examples/label-routing/README.md)
+
+```sh
+npm run demo
+```
 
 ## Install in a project
 
-Use Codex and Node.js 22 or later. From this repository's root, replace the target path and copy the entire skill, including its scripts and assets.
+You need Codex and Node.js 22 or later. Clone this private repository and copy the complete skill into the target project. Replace `/path/to/your-project` with its path.
 
 ```sh
+git clone https://github.com/acse-bq23/prompt-tree.git
+cd prompt-tree
 mkdir -p /path/to/your-project/.agents/skills
 cp -R skills/prompttree /path/to/your-project/.agents/skills/
 ```
 
-Open Codex in the target project and ask:
+Open Codex in that project and ask:
 
-> Use $prompttree to find a prompt worth improving and design tests from existing examples. Ask me about unresolved business rules. Once those are settled, run the baseline, compare minimal edits, and generate the prompt tree.
+> Use $prompttree to find a prompt worth improving and design tests from existing examples. Ask me about unresolved business rules. Once they're settled, compare minimal edits and generate the prompt tree.
 
-Codex traces the messages sent to the model, checks examples against their expected outcomes, and reuses or writes an evaluation adapter. Existing specifications can settle scoring rules. If a ticket has several labels and the model misses one, for example, Codex may ask whether the ticket fails or gets partial credit. Paid evaluations use the authorized budget.
+## How it chooses a version
 
-## How branches work
+1. **Identify the prompt and scoring rule.** Codex follows the application call, checks examples and expected outcomes, and reuses or writes an evaluator. If the specification leaves partial credit undefined for a missing label, for example, it asks you to decide. Paid evaluations use the authorized budget.
+2. **Establish a baseline.** Reuse existing search and validation splits, or partition examples by independent units such as tickets or conversations. The intake plan identifies missing expected outcomes or independent samples.
+3. **Compare one edit at a time.** Each edge cites a parent search failure and a confirmed rule. Before evaluation, the CLI checks that the edit touches one editable field, one message, and one contiguous line hunk. A tie can keep the baseline. The report records exploratory results. Formal acceptance requires independent testing.
 
-Each edge tests one hypothesis against its parent and cites a recorded search failure and a confirmed rule. Before evaluation, the CLI checks that the edit touches one editable field, one effective message, and one contiguous line hunk. Codex reviews whether the wording expresses a single change. Independent alternatives become siblings. A refinement can branch from a previous candidate. A tie can keep the baseline. Probe scores are exploratory; independent acceptance testing is a separate step.
+## Find your way around
 
-Reuse existing search and validation splits or partition an example pool by ticket, conversation, or another independent unit. The intake plan identifies missing expected outcomes or independent examples when a valid comparison cannot yet run.
-
-## Run the offline example
-
-```sh
-node examples/label-routing/demo.cjs
-```
-
-Six synthetic cases are grouped by ticket. Two wording edits branch from one baseline. Open the printed `report` path to explore them. Each experiment's `output/` contains the HTML report, `evolution.json`, the selected prompt, and a summary. The demo makes zero external model calls.
-
-## Development
-
-The toolkit uses the Node.js standard library. Discovery uses Git inside repositories and requires ripgrep outside them. Project adapters run in their own runtime environment.
-
-```sh
-node skills/prompttree/scripts/prompttree.cjs --help
-node skills/prompttree/scripts/prompttree.cjs discover --workspace .
-node --test tests/*.test.cjs
-```
-
-- [First-project intake](skills/prompttree/references/intake.md) (Chinese)
-- [Dataset, evaluator, and result contracts](skills/prompttree/references/contracts.md) (Chinese)
-- [Recovery and budgeting](skills/prompttree/references/recovery.md) (Chinese)
-- [Synthetic example and scoring rule](examples/label-routing/README.md)
+| Task | Start here |
+| --- | --- |
+| Understand the first run in a new project | [Project intake](skills/prompttree/references/intake.md) (Chinese) |
+| Connect an evaluator, examples, and scoring rules | [Configuration and results](skills/prompttree/references/contracts.md) (Chinese) |
+| Check budgets or resume a run | [Recovery and budgets](skills/prompttree/references/recovery.md) (Chinese) |
+| Change the code, run tests, or report a bug | [Contributing](CONTRIBUTING.md) |

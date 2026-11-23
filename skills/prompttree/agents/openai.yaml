@@ -1,4 +1,4 @@
 interface:
-  display_name: "PromptTree"
+  display_name: "Prompt Tree"
   short_description: "定位可优化的 Prompt，利用项目样例评测最小修改并生成离线探索树"
   default_prompt: "使用 $prompttree 从当前项目的样例设计评测，确认业务标准后比较最小 Prompt 改动并生成探索树。"

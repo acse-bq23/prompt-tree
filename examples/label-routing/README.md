@@ -10,4 +10,4 @@ A ticket passes when the predicted labels match the full expected set, regardles
 
 From the repository root, run `node examples/label-routing/demo.cjs`. The demo freezes a grouped split and compares two independent wording changes against the same baseline. Open the printed HTML report.
 
-To try discovery yourself, copy only `route.cjs`, `prompt.json` and `cases.json` into a fresh project and install the skill. Ask Codex to run PromptTree using the local mock. If Codex asks how to score a partial match, give it the rule above. The adapter and demo here are a reference implementation for the confirmed rule.
+To try discovery yourself, copy only `route.cjs`, `prompt.json` and `cases.json` into a fresh project and install the skill. Ask Codex to run Prompt Tree using the local mock. If Codex asks how to score a partial match, give it the rule above. The adapter and demo here are a reference implementation for the confirmed rule.
