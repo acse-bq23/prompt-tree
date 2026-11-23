@@ -1,0 +1,39 @@
+{
+  "schema_version": "prompttree-task-v1",
+  "mode": "probe",
+  "objective": "按已确认的业务指标和资源范围完成一次可核验的 Probe",
+  "primary_metric": "field_accuracy",
+  "metrics": [
+    "field_accuracy",
+    "json_valid_rate"
+  ],
+  "datasets": {
+    "search": {
+      "path": "search.jsonl",
+      "expected_cases": 1
+    },
+    "validation": {
+      "path": "validation.jsonl",
+      "expected_cases": 1
+    }
+  },
+  "budget": {
+    "max_attempts": 8,
+    "max_evaluations": 6,
+    "max_target_calls": 24,
+    "max_wall_time_seconds": 1800
+  },
+  "accept_declared_call_bound": false,
+  "allow_cache": false,
+  "rules": [
+    {
+      "id": "BR-01",
+      "version": "1",
+      "source": "confirmed-business-spec"
+    }
+  ],
+  "evidence": {
+    "search_cases_visible": false,
+    "export_search_cases": false
+  }
+}

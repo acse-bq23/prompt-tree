@@ -1,0 +1,6 @@
+{
+  "messages": [
+    { "role": "system", "content": "Read the ticket. Return a matching label." },
+    { "role": "user", "content": "{{ticket}}" }
+  ]
+}

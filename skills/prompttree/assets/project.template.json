@@ -1,0 +1,36 @@
+{
+  "schema_version": "prompttree-project-v1",
+  "project_id": "mail-extraction",
+  "execution_kind": "real",
+  "workspace": ".",
+  "prompt_entry": "prompt.json",
+  "policy": {
+    "editable_paths": [
+      "/messages/0/content"
+    ]
+  },
+  "evaluate_argv": [
+    "python3",
+    "evaluate.py",
+    "--candidate",
+    "{candidate_file}",
+    "--dataset",
+    "{dataset_file}",
+    "--request",
+    "{request_file}",
+    "--output",
+    "{result_file}",
+    "--max-target-calls",
+    "{max_target_calls}"
+  ],
+  "protected_files": [
+    "evaluate.py"
+  ],
+  "runner_timeout_seconds": 120,
+  "target_calls_per_case_bound": 2,
+  "call_bound_kind": "declared",
+  "remote_effects": true,
+  "env_required": [
+    "TARGET_MODEL_API_KEY"
+  ]
+}

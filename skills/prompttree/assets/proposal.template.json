@@ -1,0 +1,18 @@
+{
+  "parent_event_id": "E-000",
+  "evidence_refs": [
+    "RUN-ID/CASE-ID"
+  ],
+  "rule_refs": [
+    {
+      "id": "BR-01",
+      "version": "1",
+      "source": "confirmed-business-spec"
+    }
+  ],
+  "operator": "CLARIFY_RULE",
+  "hypothesis": "依据父版本记录的失败提出单一修改假设",
+  "expected_effect": "改善约定失败模式",
+  "regression_risk": "核查其他切片的回归",
+  "secondary_source_ids": []
+}

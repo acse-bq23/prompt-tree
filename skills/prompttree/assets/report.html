@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PromptTree · Probe 报告</title>
+<style>
+:root{--bg:#f5f6ef;--paper:#fffef9;--ink:#253d2e;--muted:#72816d;--line:#dce3d3;--green:#356344;--danger:#9b4e3d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 system-ui,sans-serif}header,main,footer{max-width:1320px;margin:auto;padding:24px}
+header{display:flex;justify-content:space-between;gap:24px;align-items:center;border-bottom:1px solid var(--line)}header b{font-size:22px;letter-spacing:-1px}.badge{border:1px solid var(--line);border-radius:24px;padding:5px 14px;font-size:12px}
+h1{font-size:30px;line-height:1.3;margin:18px 0 8px}h2{font-size:17px;font-weight:600;margin:0 0 16px}h3{font-size:14px;margin:20px 0 8px}p{margin:8px 0}.muted,small{color:var(--muted)}.notice{padding:14px 18px;border-left:3px solid #ba974d;background:#fbf4df;margin:18px 0}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}.stat,.panel{border:1px solid var(--line);border-radius:12px;background:var(--paper);padding:18px}.stat b{display:block;font-size:24px}.stat span{font-size:12px;color:var(--muted)}.grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr);gap:18px}.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}button{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:6px 12px;background:var(--paper);color:var(--ink)}button:focus-visible{outline:3px solid #ba974d}button.active{background:var(--green);color:white}input[type=range]{accent-color:var(--green);max-width:240px}svg{width:100%;min-height:360px;background-image:radial-gradient(#dbe2d1 1px,transparent 1px);background-size:18px 18px;border-radius:8px}.edge{fill:none;stroke:#91a88a;stroke-width:2}.reference{stroke-dasharray:6 5;stroke:#ba974d}.node rect{fill:var(--paper);stroke:var(--line);stroke-width:1.5}.node{cursor:pointer}.node.selected rect{stroke:var(--green);stroke-width:3}.node text{fill:var(--ink);font:12px system-ui}.node .caption{fill:var(--muted);font-size:10px}.detail{min-width:0;max-height:950px;overflow:auto}pre{font:12px/1.7 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#f1f4eb;border-radius:6px;margin:8px 0}.diff{padding:10px;background:#f6f8f2;font:12px/1.7 ui-monospace,monospace;overflow-wrap:anywhere;white-space:pre-wrap}.add{background:#e2efd9}.remove{background:#f6e5df}.item{border-top:1px solid var(--line);padding:10px 0}ul{padding-left:22px}.error{color:var(--danger)}details{margin:12px 0}summary{cursor:pointer}.count{font-size:12px;line-height:2;margin-top:12px}footer{font-size:12px;color:var(--muted)}
+@media(max-width:850px){header,main,footer{padding:18px}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.detail{max-height:none}h1{font-size:25px}}@media(prefers-reduced-motion:no-preference){.node{animation:arrive .4s ease-out}@keyframes arrive{from{opacity:0}to{opacity:1}}}
+</style>
+</head>
+<body>
+<header><b>PromptTree</b><span class="badge" id="kind"></span></header>
+<main>
+<p class="muted">评测驱动的 Prompt 探索 · 离线交付</p><h1 id="title"></h1><p id="objective"></p>
+<div class="notice" id="notice"></div>
+<section class="stats" aria-label="实验概览" id="stats"></section>
+<div class="grid">
+<section class="panel"><h2>探索树</h2><div class="toolbar"><button id="play">播放生长</button><label>进度 <input id="timeline" type="range" min="0" step="1"></label><span id="position"></span></div><svg id="tree" role="img" aria-label="从下方向上生长的 Prompt 探索树"></svg><p class="count" id="counts"></p><details><summary>无变化、拒绝与复用记录</summary><pre id="attempts"></pre></details></section>
+<section class="panel detail" aria-live="polite"><h2 id="nodeTitle"></h2><p class="muted" id="nodeMeta"></p><h3>修改依据与假设</h3><div id="rationale"></div><h3>评测记录</h3><div id="runs"></div><details open><summary>相对父版本的差异</summary><div class="diff" id="diff"></div></details><details><summary>完整有效 Prompt</summary><pre id="prompt"></pre></details></section>
+</div>
+<section class="panel" style="margin-top:18px"><h2>实验边界与可复现信息</h2><ul id="limitations"></ul><pre id="metadata"></pre></section>
+</main>
+<footer>依据冻结合同与实验记录生成。独立测试：not_tested。应用 Prompt 前核对业务规则、回归与运行环境。</footer>
+<script type="application/json" id="report-data">REPORT_DATA</script>
+<script id="report-ui">
+'use strict';
+const data=JSON.parse(document.getElementById('report-data').textContent),manifest=data.manifest,nodes=data.nodes;
+const $=id=>document.getElementById(id);
+const el=(tag,text,className)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;};
+const svg=(tag,attrs,text)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value]of Object.entries(attrs))n.setAttribute(key,value);if(text!==undefined)n.textContent=text;return n;};
+const pct=n=>(n*100).toFixed(2)+'%';
+let reveal=nodes.length-1,selected=nodes.at(-1).event_id,timer=null;
+$('kind').textContent=manifest.execution_kind==='mock'?'模拟 Probe':'Probe · 验证集探索';
+$('title').textContent=manifest.project_id;
+$('objective').textContent=manifest.objective;
+$('notice').textContent=manifest.execution_kind==='mock'?'数据与模型响应为模拟。分数变化用于检验工具链，业务效果待真实数据和模型验证。':'本次结论来自验证集探索；独立测试尚未运行，正式验收未判定。';
+for(const [label,value]of [['基准 · '+manifest.comparison.metric,pct(manifest.comparison.baseline.value)],['候选 · 验证集',pct(manifest.comparison.candidate.value)],['差异 · 百分点',(manifest.comparison.delta*100).toFixed(2)],['真实目标模型调用',String(manifest.usage.target_calls)]]){
+ const box=el('div',undefined,'stat');box.append(el('b',value),el('span',label));$('stats').append(box);
+}
+$('counts').textContent='尝试 '+manifest.counts.attempts+' · 派生 '+manifest.counts.derivations+' · 唯一版本 '+manifest.counts.versions+' · 实际评测任务 '+manifest.counts.evaluations+' · 缓存复用 '+manifest.counts.cache_reuses+' · 模拟调用 '+manifest.usage.simulated_calls;
+$('attempts').textContent=JSON.stringify(data.attempts,null,2);
+for(const text of manifest.limitations)$('limitations').append(el('li',text));
+$('metadata').textContent=JSON.stringify({experiment_id:manifest.experiment_id,contract_hash:manifest.contract_hash,created_at:manifest.created_at,stop_reason:manifest.stop_reason,test_status:manifest.test_status,release_decision:manifest.release_decision,budget:manifest.limits,usage:manifest.usage},null,2);
+$('timeline').max=String(nodes.length-1);$('timeline').value=String(reveal);
+const depth=id=>{const n=nodes.find(n=>n.event_id===id);return n.parent_event_id?depth(n.parent_event_id)+1:0;};
+function show(id){
+ selected=id;const n=nodes.find(n=>n.event_id===id);
+ $('nodeTitle').textContent=n.event_id+' · '+(n.kind==='root'?'基准导入':n.kind==='reference'?'内容引用':'候选');
+ $('nodeMeta').textContent='父节点 '+(n.parent_event_id||'—')+' · '+n.version_id.slice(0,18);
+ $('rationale').replaceChildren();
+ for(const [label,value]of [['改动字段',n.changed_path],['假设',n.hypothesis],['预期',n.expected_effect],['风险',n.regression_risk],['规则',JSON.stringify(n.rule_refs)],['失败依据',JSON.stringify(n.evidence,null,2)]])if(value){$('rationale').append(el('b',label),el('pre',value));}
+ $('runs').replaceChildren();
+ for(const r of n.runs){const line=el('div',undefined,'item');line.append(el('b',r.split+' · '+r.status),el('pre',JSON.stringify({run_id:r.run_id,metrics:r.metrics,charged_target_calls:r.charged_calls,error:r.error},null,2)));$('runs').append(line);}
+ $('prompt').textContent=n.prompt;$('diff').replaceChildren();
+ for(const line of n.diff)$('diff').append(el('div',(line.kind==='add'?'+ ':line.kind==='remove'?'- ':'  ')+line.text,line.kind));
+ draw();
+}
+function draw(){
+ const visible=nodes.slice(0,reveal+1),levels=new Map(),positions=new Map(),maxDepth=Math.max(...visible.map(n=>depth(n.event_id))),width=760,height=Math.max(360,(maxDepth+1)*150+70);
+ for(const n of visible){const d=depth(n.event_id);if(!levels.has(d))levels.set(d,[]);levels.get(d).push(n);}
+ for(const [d,group]of levels)group.forEach((n,i)=>positions.set(n.event_id,{x:(i+.5)*width/group.length,y:height-70-d*150}));
+ $('tree').replaceChildren();$('tree').setAttribute('viewBox','0 0 '+width+' '+height);
+ for(const n of visible)if(n.parent_event_id&&positions.has(n.parent_event_id)){
+  const a=positions.get(n.parent_event_id),b=positions.get(n.event_id),middle=(a.y+b.y)/2;
+  $('tree').append(svg('path',{d:'M '+a.x+' '+(a.y-40)+' C '+a.x+' '+middle+', '+b.x+' '+middle+', '+b.x+' '+(b.y+40),class:'edge'}));
+ }
+ for(const n of visible){
+  const p=positions.get(n.event_id),g=svg('g',{class:'node'+(n.event_id===selected?' selected':''),transform:'translate('+(p.x-90)+' '+(p.y-40)+')',role:'button',tabindex:'0','aria-label':n.event_id+' '+n.hypothesis});
+  g.append(svg('rect',{width:180,height:80,rx:9}),svg('text',{x:12,y:22},n.event_id+' · '+(n.kind==='root'?'基准':n.kind==='reference'?'引用':'候选')),svg('text',{x:12,y:42,class:'caption'},n.version_id.slice(0,20)));
+  const v=n.runs.find(r=>r.split==='validation'&&r.status==='succeeded');
+  g.append(svg('text',{x:12,y:65},v?pct(v.metrics[manifest.comparison.metric].value):'未完成验证'));
+  g.onclick=()=>show(n.event_id);g.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show(n.event_id);}};$('tree').append(g);
+ }
+ $('position').textContent=(reveal+1)+' / '+nodes.length;
+}
+function stop(){clearInterval(timer);timer=null;$('play').textContent='播放生长';}
+$('play').onclick=()=>{if(timer){stop();return;}reveal=0;$('timeline').value='0';show(nodes[0].event_id);$('play').textContent='暂停';timer=setInterval(()=>{if(reveal>=nodes.length-1){stop();return;}reveal++;$('timeline').value=String(reveal);show(nodes[reveal].event_id);},800);};
+$('timeline').oninput=()=>{stop();reveal=Number($('timeline').value);show(nodes[reveal].event_id);};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
+show(selected);
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+[
+  {"case_id":"A1","ticket_id":"A","input":"payment and login","expected":["billing","access"]},
+  {"case_id":"A2","ticket_id":"A","input":"login","expected":["access"]},
+  {"case_id":"B1","ticket_id":"B","input":"login and payment","expected":["billing","access"]},
+  {"case_id":"B2","ticket_id":"B","input":"payment","expected":["billing"]},
+  {"case_id":"C1","ticket_id":"C","input":"login plus payment","expected":["billing","access"]},
+  {"case_id":"C2","ticket_id":"C","input":"unknown","expected":[]}
+]
