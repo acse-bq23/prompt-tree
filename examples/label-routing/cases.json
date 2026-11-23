@@ -1,8 +1,14 @@
 [
-  {"case_id":"A1","ticket_id":"A","input":"payment and login","expected":["billing","access"]},
-  {"case_id":"A2","ticket_id":"A","input":"login","expected":["access"]},
-  {"case_id":"B1","ticket_id":"B","input":"login and payment","expected":["billing","access"]},
-  {"case_id":"B2","ticket_id":"B","input":"payment","expected":["billing"]},
-  {"case_id":"C1","ticket_id":"C","input":"login plus payment","expected":["billing","access"]},
-  {"case_id":"C2","ticket_id":"C","input":"unknown","expected":[]}
+  {"case_id":"A1","ticket_id":"A","input":"payment declined and login failure","expected":["billing","access"]},
+  {"case_id":"A2","ticket_id":"A","input":"password reset A","expected":["access"]},
+  {"case_id":"A3","ticket_id":"A","input":"PAYMENT DECLINED","expected":["billing"]},
+  {"case_id":"A4","ticket_id":"A","input":"login failure","expected":["access"]},
+  {"case_id":"B1","ticket_id":"B","input":"payment pending and login expired","expected":["billing","access"]},
+  {"case_id":"B2","ticket_id":"B","input":"password reset B","expected":["access"]},
+  {"case_id":"B3","ticket_id":"B","input":"PAYMENT PENDING","expected":["billing"]},
+  {"case_id":"B4","ticket_id":"B","input":"login expired","expected":["access"]},
+  {"case_id":"C1","ticket_id":"C","input":"payment reversed and login blocked","expected":["billing","access"]},
+  {"case_id":"C2","ticket_id":"C","input":"password reset C","expected":["access"]},
+  {"case_id":"C3","ticket_id":"C","input":"PAYMENT REVERSED","expected":["billing"]},
+  {"case_id":"C4","ticket_id":"C","input":"login blocked","expected":["access"]}
 ]

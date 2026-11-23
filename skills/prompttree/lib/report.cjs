@@ -58,7 +58,7 @@ function exportReport(store) {
       ...(contract.project.execution_kind === 'mock' ? ['Model responses and datasets are simulated; score deltas do not demonstrate business improvement.'] : [])
     ],
     source_fingerprints:contract.files.map(f => ({ file:path.basename(f.file), sha256:f.sha256 })) };
-  const nodes = state.derivations.map(event => {
+  const derived = state.derivations.map(event => {
     const version = W.loadVersion(store, event.version_id);
     const parent = state.derivations.find(e => e.event_id === event.parent_event_id);
     const parentText = parent ? promptText(W.loadVersion(store, parent.version_id).rendered) : '';
@@ -72,7 +72,22 @@ function exportReport(store) {
       runs:linkedRuns, evidence };
   });
   const attempts = store.events.filter(e => ['NO_CHANGE','REJECTED','REUSED'].includes(e.type)).map(e => ({ type:e.type, ...e.data }));
-  const model = { schema_version:'prompttree-probe-report-v1', manifest, nodes, attempts };
+  const layers = require('./layers.cjs').snapshot(store);
+  const nodes = layers.length ? layers.flatMap(layer => layer.nodes.map(node => {
+    const attempted = runs.filter(r => r.request_id.startsWith(node.id + '-'));
+    const eventId = node.event_id || attempted[0]?.event_id;
+    const existing = derived.find(d => d.event_id === eventId);
+    const fallback = { event_id:node.id, parent_event_id:node.parent_event_id, kind:'candidate',
+      version_id:'', hypothesis:node.label, prompt:'', diff:[], runs:attempted, evidence:[] };
+    const linked = [...attempted];
+    for (const id of [node.search_run_id,node.validation_run_id]) {
+      if (id && !linked.some(r=>r.run_id===id)) linked.push({ ...state.runs[id], reused:true });
+    }
+    return { ...(existing || fallback), runs:linked, level:layer.level, batch_status:layer.status, node_id:node.id,
+      status:node.status, branch:node.branch, reason:node.reason, selected:node.selected };
+  })) : derived;
+  const model = { schema_version:'prompttree-probe-report-v1', manifest, nodes, attempts,
+    layers:layers.map(({ level,status,nodes }) => ({ level,status,count:nodes.length })) };
   C.writeJSON(path.join(output, 'manifest.json'), manifest);
   C.writeJSON(path.join(output, 'evolution.json'), model);
   const best = W.loadVersion(store, selected.version_id);

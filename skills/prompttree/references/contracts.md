@@ -1,6 +1,6 @@
 # 配置与结果合同
 
-当前实现只支持串行本地命令 Probe。项目业务流程可以调用远程模型，但工具不提供远程任务查询、取消或自动对账。候选 JSON 原生格式可通过纯渲染器转为规范模板，未配置渲染器时原生候选须直接包含非空 `messages: [{role, content}]`；content 为字符串。
+Probe 使用本地命令执行评测。同一层的任务由后台进程串行执行。项目业务流程可以调用远程模型，但工具不提供远程任务查询、取消或自动对账。候选 JSON 原生格式可通过纯渲染器转为规范模板，未配置渲染器时原生候选须直接包含非空 `messages: [{role, content}]`；content 为字符串。
 
 ## 项目配置
 
@@ -30,7 +30,7 @@ policy.editable_paths 为非根 JSON pointer 列表；其余结构和内容保�
 
 ## 任务配置
 
-`assets/task.template.json` 保存目标、比率指标、预算、规则、缓存与证据策略。Search 和 Validation 均为非空 JSON 数组或 JSONL，记录具有唯一字符串 case_id，可通过 id_field 改名。两个切分的 ID 必须分开；工具无法从 ID 证明内容不存在近重复，接入时还应核对业务分组。其他数据格式先在项目侧转为冻结快照。
+`assets/task.template.json` 保存目标、比率指标、预算、规则、缓存与证据策略。新实验填写 max_layers（根为 1）；模板中的 null 需要由用户确认值替换。未含此字段的既有配置仍使用逐项 evaluate。按层提交和恢复见[层计划](layers.md)。Search 和 Validation 均为非空 JSON 数组或 JSONL，记录具有唯一字符串 case_id，可通过 id_field 改名。两个切分的 ID 必须分开；工具无法从 ID 证明内容不存在近重复，接入时还应核对业务分组。其他数据格式先在项目侧转为冻结快照。
 
 Probe 的指标均为 numerator / denominator / value 比率，范围 0–1。denominator 必须大于零；主指标必须在 metrics 列表中。宿主成本未知值为 null。
 
@@ -56,6 +56,6 @@ Probe 的指标均为 numerator / denominator / value 比率，范围 0–1。de
 
 ## 停止与正式验证
 
-finalize 选择该版本第一个完整 Validation 运行；重复评测逐个列示，不自动平均。reason 为 target_reached、budget_exhausted、plateau、no_valid_candidate、runner_error、operator_stop、cancelled 或 contract_changed。
+finalize 选择该版本第一个完整 Validation 运行；重复评测逐个列示，不自动平均。reason 为 depth_limit、target_reached、budget_exhausted、plateau、no_valid_candidate、runner_error、operator_stop、cancelled 或 contract_changed。
 
 正式 verify、独立测试回执和原项目自动应用不在 Probe 执行范围；prepare 会拒绝 verify，避免将探索成绩记为正式通过。

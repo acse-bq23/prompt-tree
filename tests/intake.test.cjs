@@ -43,7 +43,7 @@ test('grouped snapshots are deterministic, complete, disjoint and never overwrit
   write([{ key:'a' }]);
   assert.throws(() => split('missing'), { code:'INVALID_GROUP' });
 });
-test('portable synthetic example compares two sibling edits and exports an offline tree', t => {
+test('portable three-layer example reviews every parent and exports each edge and status', t => {
   const root = temporary(t);
   for (const location of ['skills/prompttree','examples/label-routing']) {
     fs.cpSync(path.resolve(__dirname,'..',location),path.join(root,location),{
@@ -52,13 +52,21 @@ test('portable synthetic example compares two sibling edits and exports an offli
   }
   const output = JSON.parse(execFileSync(process.execPath,[path.join(root,'examples/label-routing/demo.cjs')]));
   assert.equal(output.usage.target_calls, 0);
-  assert.equal(output.comparison.baseline.value, .5);
-  assert.equal(output.comparison.candidate.value, 1);
+  assert.equal(output.comparison.baseline.value, .25);
+  assert.equal(output.comparison.candidate.value, .75);
   const tree = JSON.parse(fs.readFileSync(path.join(path.dirname(output.report),'evolution.json')));
-  assert.equal(tree.nodes.length, 3);
+  assert.deepEqual(tree.layers.map(l=>[l.count,l.status]),[[1,'completed'],[3,'completed'],[6,'completed']]);
+  assert.equal(tree.nodes.length,10);
+  assert.equal(output.counts.evaluations,16);
+  assert.equal(output.usage.simulated_calls,96);
   for (const node of tree.nodes.slice(1)) {
-    assert.equal(node.parent_event_id, tree.nodes[0].event_id);
-    assert.equal(node.changed_path, '/messages/0/content');
-    assert.equal(node.runs.length, 2);
+    const parent = tree.nodes.find(n=>n.event_id===node.parent_event_id);
+    assert.equal(node.level,parent.level+1);
+    assert.equal(node.status,'completed');
+    assert.equal(node.branch,node.level===3?'depth_limit':'expanded');
+    assert.ok(node.evidence[0].reference.startsWith(parent.runs.find(r=>r.split==='search').run_id+'/'));
+    assert.equal(node.changed_path,'/messages/0/content');
+    assert.equal(node.runs.length,2);
   }
+  assert.equal(tree.nodes.filter(n=>n.selected).length,1);
 });

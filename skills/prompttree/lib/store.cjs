@@ -6,18 +6,27 @@ const { check, hash, readJSON, inside, immutable } = require('./core.cjs');
 
 function lock(root) {
   check(fs.existsSync(root) && !fs.lstatSync(root).isSymbolicLink(), 'INVALID_PATH', 'Experiment directory missing or symlinked');
-  const file = path.join(root, '.write-lock');
-  if (fs.existsSync(file)) {
-    const previous = readJSON(file);
-    check(Number.isSafeInteger(previous.pid) && previous.pid > 0, 'INTEGRITY_ERROR', 'Invalid writer lock');
-    let alive = true;
-    try { process.kill(previous.pid, 0); } catch (error) { if (error.code === 'ESRCH') alive = false; }
-    check(!alive, 'BUSY', 'An experiment writer is active');
-    fs.unlinkSync(file);
-  }
-  const token = crypto.randomUUID();
-  fs.writeFileSync(file, JSON.stringify({ pid:process.pid, token }), { flag:'wx', mode:0o600 });
-  return () => { if (fs.existsSync(file) && readJSON(file).token === token) fs.unlinkSync(file); };
+  let file = path.join(root,'.write-lock');
+  const token = crypto.randomUUID(), staged = path.join(root,'.lease-'+token);
+  fs.writeFileSync(staged,JSON.stringify({ pid:process.pid,token }),{ flag:'wx',mode:0o600 });
+  try {
+    for (;;) {
+      try { fs.linkSync(staged,file); break; }
+      catch (error) { if (error.code !== 'EEXIST') throw error; }
+      let owner;
+      try { owner = JSON.parse(fs.readFileSync(file,'utf8')); }
+      catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+      check(Number.isSafeInteger(owner.pid) && owner.pid > 0 && /^[0-9a-f-]{36}$/.test(owner.token),
+        'INTEGRITY_ERROR','Invalid writer lease');
+      let alive = true;
+      try { process.kill(owner.pid,0); } catch (error) { alive = error.code !== 'ESRCH'; }
+      check(!alive,'BUSY','An experiment writer is active');
+      // A dead owner's immutable token names its single successor. Competing
+      // recoveries never unlink a lease that another writer may have just taken.
+      file = path.join(root,'.write-lock-'+owner.token);
+    }
+  } finally { fs.unlinkSync(staged); }
+  return () => fs.unlinkSync(file);
 }
 function open(root) {
   const contract = readJSON(path.join(root, 'contract.json'));

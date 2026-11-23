@@ -8,7 +8,7 @@ const candidate = read(candidateFile), rows = read(datasetFile), request = read(
 const cases = rows.map(({ case_id, input, expected }) => {
   const prediction = route(input, candidate);
   const failed = JSON.stringify([...prediction].sort()) !== JSON.stringify([...expected].sort());
-  return { case_id, failed, expected, prediction, error_pattern:failed ? 'label set mismatch' : null };
+  return { case_id, failed, expected, prediction, input_excerpt:input };
 });
 const correct = cases.filter(c => !c.failed).length;
 fs.writeFileSync(resultFile, JSON.stringify({

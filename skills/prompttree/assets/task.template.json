@@ -1,6 +1,7 @@
 {
   "schema_version": "prompttree-task-v1",
   "mode": "probe",
+  "max_layers": null,
   "objective": "按已确认的业务指标和资源范围完成一次可核验的 Probe",
   "primary_metric": "field_accuracy",
   "metrics": [

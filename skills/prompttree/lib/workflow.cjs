@@ -7,7 +7,7 @@ const S = require('./store.cjs');
 const R = require('./runner.cjs');
 
 const home = path.resolve(__dirname, '..');
-const STOP_REASONS = ['target_reached','budget_exhausted','plateau','no_valid_candidate','runner_error','operator_stop','cancelled','contract_changed'];
+const STOP_REASONS = ['depth_limit','target_reached','budget_exhausted','plateau','no_valid_candidate','runner_error','operator_stop','cancelled','contract_changed'];
 const sourceFiles = () => {
   const walk = dir => fs.readdirSync(dir, { withFileTypes:true }).flatMap(entry => entry.isDirectory() ? walk(path.join(dir, entry.name)) : [path.join(dir, entry.name)]);
   return walk(home).sort();
@@ -40,11 +40,14 @@ function usage(store) {
 }
 function status(store) {
   const state = S.state(store);
+  const layers = store.contract.task.max_layers ? require('./layers.cjs').snapshot(store) : null;
+  const layer = layers?.at(-1);
   return { ok:true, experiment_id:store.contract.experiment_id, execution_kind:store.contract.project.execution_kind,
-    phase:state.phase, baseline_checked:state.baseline_checked, budget:usage(store),
+    phase:layer && !state.finalized ? layer.status : state.phase, baseline_checked:state.baseline_checked, budget:usage(store),
     limits:store.contract.task.budget, deadline_at:store.contract.deadline_at,
     versions:Object.keys(state.versions).length, derivations:state.derivations.length,
     runs:Object.values(state.runs), final:state.finalized,
+    ...(layers ? { max_layers:store.contract.task.max_layers, layers } : {}),
     limitation:'Local records detect corruption; shared filesystem privileges are not an isolation boundary.' };
 }
 function environment(contract) {
@@ -94,6 +97,7 @@ async function prepare({ project:projectFile, task:taskFile, run }) {
   const base = path.dirname(path.resolve(projectFile));
   const project = C.clone(C.readJSON(projectFile)), task = C.clone(C.readJSON(taskFile));
   C.check(project.schema_version === 'prompttree-project-v1' && task.schema_version === 'prompttree-task-v1', 'UNSUPPORTED_SCHEMA', 'Unsupported configuration schema');
+  if (task.max_layers !== undefined) C.budgetNumber(task.max_layers, 'max_layers');
   C.check(task.mode === 'probe', 'UNSUPPORTED_MODE', 'This version implements Probe; independent verify is not implemented');
   C.check(['mock','real'].includes(project.execution_kind), 'INVALID_CONFIG', 'execution_kind must explicitly be mock or real');
   C.check(project.project_id && task.objective, 'INVALID_CONFIG', 'project_id and objective required');
@@ -208,10 +212,40 @@ function visibleResult(raw, contract, split) {
   if (split !== 'search' || contract.task.evidence?.search_cases_visible !== true) delete out.cases;
   return out;
 }
-async function evaluate(input) {
-  const root = path.resolve(input.run), release = S.lock(root);
+function settle(store, reservedRun, request, command) {
+  const { root,contract } = store, { run_id:runId, version_id:versionId, reserved_calls:reserved } = reservedRun;
+  const relative = 'runs/' + request.request_id, resultFile = C.inside(root, relative + '/result.json');
+  const logs = S.blob(store, relative + '/diagnostics.json', { code:command.code, signal:command.signal, reason:command.reason,
+    stdout:command.stdout, stderr:command.stderr });
+  let raw, failure;
   try {
-    const store = S.open(root), contract = store.contract, state = S.state(store);
+    C.check(command.code === 0 && !command.reason, 'RUNNER_FAILED', 'Evaluation command failed or timed out');
+    C.check(fs.existsSync(resultFile), 'MISSING_RESULT', 'Evaluator did not write result JSON');
+    raw = C.readJSON(resultFile);
+    checkResult(raw, request, contract, contract.split_info[request.split].ids);
+    environment(contract);
+  } catch (error) { failure = error; }
+  const artifacts = [logs];
+  let resultPath = null;
+  if (fs.existsSync(resultFile)) {
+    resultPath = relative + '/result.json';
+    artifacts.push({ path:resultPath, sha256:C.hash(fs.readFileSync(resultFile)) });
+  }
+  const uncertain = !!failure && contract.project.remote_effects !== false;
+  const data = { run_id:runId, request_id:request.request_id, version_id:versionId, event_id:reservedRun.event_id,
+    split:request.split, status:failure ? uncertain ? 'unknown' : 'failed' : 'succeeded',
+    finished_at:new Date().toISOString(), wall_time_ms:Date.now() - Date.parse(reservedRun.started_at), result_path:resultPath,
+    charged_calls:failure ? Math.max(reserved, Number.isSafeInteger(raw?.usage?.target_calls) && raw.usage.target_calls >= 0 ? raw.usage.target_calls : reserved) : raw.usage.target_calls, simulated_calls:failure ? null : raw.usage.simulated_calls || 0,
+    metrics:failure ? null : raw.metrics, error:failure ? { code:failure.code || 'EVALUATION_FAILED', message:failure.message } : null };
+  S.append(store, 'RESULT', data, artifacts);
+  if (!failure && !S.state(store).baseline_checked && baselineReady(store)) S.append(store, 'BASELINE_CHECKED', {});
+  return { ok:!failure, outcome:data.status, ...data, result:failure ? undefined : visibleResult(raw, contract, request.split) };
+}
+async function evaluate(input, lockedStore) {
+  const root = path.resolve(input.run), release = lockedStore ? null : S.lock(root);
+  try {
+    const store = lockedStore || S.open(root), contract = store.contract, state = S.state(store);
+    C.check(lockedStore || !contract.task.max_layers, 'LAYER_REQUIRED', 'Submit a whole layer for this experiment');
     C.check(!state.finalized, 'FINALIZED', 'Experiment is finalized');
     C.check(typeof input.requestId === 'string' && /^[A-Za-z0-9_.-]{1,96}$/.test(input.requestId), 'INVALID_REQUEST_ID', 'A stable --request-id is required');
     const requestSignature = C.hash({ candidate:input.candidate ? C.readJSON(input.candidate) : null,
@@ -221,17 +255,28 @@ async function evaluate(input) {
     if (previous) {
       C.check(previous.data.signature === requestSignature, 'REQUEST_CONFLICT', 'request-id already used with different inputs');
       const prior = store.events.findLast(e => ['RESULT','REUSED','NO_CHANGE','REJECTED'].includes(e.type) && e.data.request_id === input.requestId);
-      C.check(prior, 'UNKNOWN_EXECUTION', 'Earlier request has no confirmed outcome; inspect status before retry');
-      return { ok:!['REJECTED'].includes(prior.type) && (!prior.data.status || prior.data.status === 'succeeded'), idempotent:true, outcome:prior.type, ...prior.data };
+      if (prior) {
+        if (prior.type === 'RESULT' && prior.data.status === 'succeeded' && !state.baseline_checked && baselineReady(store))
+          S.append(store,'BASELINE_CHECKED',{});
+        return { ok:prior.type !== 'REJECTED' && (!prior.data.status || prior.data.status === 'succeeded'), idempotent:true, outcome:prior.type.toLowerCase(), ...prior.data };
+      }
+      const reserved = Object.values(state.runs).find(r => r.request_id === input.requestId);
+      C.check(lockedStore, 'UNKNOWN_EXECUTION','Earlier request has no confirmed outcome');
+      if (reserved) {
+        const request = C.readJSON(C.inside(root,'runs/'+input.requestId+'/request.json'));
+        const command = await require('./supervisor.cjs').receipt(root,reserved);
+        return settle(store,reserved,request,command);
+      }
+      // No reservation means the evaluator could never have been dispatched.
     }
     C.check(!state.pending.length, 'UNKNOWN_EXECUTION', 'An execution is unconfirmed; reconcile before another call', { run_ids:state.pending.map(r => r.run_id) });
     environment(contract);
     C.check(['search','validation'].includes(input.split), 'INVALID_SPLIT', 'Probe only supports search and validation');
     C.check(!input.original || (input.baseline && contract.project.original_evaluate_argv), 'INVALID_INPUT', 'Original evaluation requires baseline and original_evaluate_argv');
     C.check(input.baseline || state.baseline_checked, 'BASELINE_REQUIRED', 'Complete baseline search and validation first');
-    C.check(state.attempts < contract.task.budget.max_attempts, 'BUDGET_EXHAUSTED', 'Attempt budget exhausted');
+    C.check(previous || state.attempts < contract.task.budget.max_attempts, 'BUDGET_EXHAUSTED', 'Attempt budget exhausted');
     C.check(Date.now() < Date.parse(contract.deadline_at), 'BUDGET_EXHAUSTED', 'Experiment deadline reached');
-    S.append(store, 'ATTEMPT', { request_id:input.requestId, signature:requestSignature });
+    if (!previous) S.append(store, 'ATTEMPT', { request_id:input.requestId, signature:requestSignature });
     const baselineVersion = loadVersion(store, state.derivations[0].version_id);
     let candidate, proposal, template, versionId, derivation, parentVersion, changedPath;
     try {
@@ -285,8 +330,10 @@ async function evaluate(input) {
         const proposalHash = C.hash(proposal);
         derivation = state.derivations.find(d => d.proposal_hash === proposalHash && d.version_id === versionId);
         if (!derivation) {
+          const attempt = store.events.findLast(e=>e.type==='ATTEMPT' && e.data.request_id===input.requestId);
+          const registeredHere = store.events.some(e=>e.seq>attempt.seq && e.type==='VERSION' && e.data.version_id===versionId);
           derivation = { ...proposal, changed_path:changedPath, proposal_hash:proposalHash, event_id:'E-' + String(state.derivations.length).padStart(3, '0'), version_id:versionId,
-            kind:state.versions[versionId] ? 'reference' : 'candidate', created_at:new Date().toISOString() };
+            kind:registeredHere ? 'candidate' : 'reference', created_at:attempt.at };
           const artifact = S.blob(store, 'proposals/' + derivation.event_id + '.json', derivation);
           S.append(store, 'DERIVATION', derivation, [artifact]);
         }
@@ -309,7 +356,8 @@ async function evaluate(input) {
       throw new C.ToolError('BUDGET_EXHAUSTED', 'Insufficient evaluation, call or time budget');
     }
     environment(contract);
-    const runId = 'RUN-' + crypto.randomUUID(), relative = 'runs/' + input.requestId;
+    const relative = 'runs/' + input.requestId;
+    const runId = 'RUN-' + (lockedStore ? C.hash([contract.experiment_id,input.requestId,requestSignature]) : crypto.randomUUID());
     const resultFile = C.inside(root, relative + '/result.json'), requestFile = C.inside(root, relative + '/request.json');
     const request = { schema_version:'prompttree-request-v1', run_id:runId, request_id:input.requestId,
       contract_hash:contract.contract_hash, version_id:versionId, template_hash:C.hash(template),
@@ -320,37 +368,18 @@ async function evaluate(input) {
     S.append(store, 'RESERVED', { run_id:runId, request_id:input.requestId, version_id:versionId, event_id:derivation.event_id,
       evaluation_key:key, kind:input.original ? 'original' : input.baseline ? 'baseline' : 'candidate',
       split:input.split, reserved_calls:reserved, started_at:new Date().toISOString() }, [requestArtifact, nativeArtifact]);
-    const started = Date.now();
+    const reservedRun = S.state(store).runs[runId];
+    if (lockedStore) {
+      const supervisor = require('./supervisor.cjs');
+      await supervisor.launch(root,input.requestId);
+      return settle(store,reservedRun,request,await supervisor.receipt(root,reservedRun));
+    }
     const command = await R.execute(input.original ? contract.project.original_evaluate_argv : contract.project.evaluate_argv,
       { candidate_file:C.inside(root, relative + '/candidate.json'), dataset_file:contract.task.datasets[input.split].path,
         result_file:resultFile, request_file:requestFile, max_target_calls:reserved },
       options(contract, Date.parse(contract.deadline_at) - Date.now()));
-    const logs = S.blob(store, relative + '/diagnostics.json', { code:command.code, signal:command.signal, reason:command.reason,
-      stdout:command.stdout, stderr:command.stderr });
-    let raw, failure;
-    try {
-      C.check(command.code === 0 && !command.reason, 'RUNNER_FAILED', 'Evaluation command failed or timed out');
-      C.check(fs.existsSync(resultFile), 'MISSING_RESULT', 'Evaluator did not write result JSON');
-      raw = C.readJSON(resultFile);
-      checkResult(raw, request, contract, contract.split_info[input.split].ids);
-      environment(contract);
-    } catch (error) { failure = error; }
-    const artifacts = [logs];
-    let resultPath = null;
-    if (fs.existsSync(resultFile)) {
-      resultPath = relative + '/result.json';
-      artifacts.push({ path:resultPath, sha256:C.hash(fs.readFileSync(resultFile)) });
-    }
-    const uncertain = !!failure && contract.project.remote_effects !== false;
-    const data = { run_id:runId, request_id:input.requestId, version_id:versionId, event_id:derivation.event_id,
-      split:input.split, status:failure ? uncertain ? 'unknown' : 'failed' : 'succeeded',
-      finished_at:new Date().toISOString(), wall_time_ms:Date.now() - started, result_path:resultPath,
-      charged_calls:failure ? Math.max(reserved, Number.isSafeInteger(raw?.usage?.target_calls) && raw.usage.target_calls >= 0 ? raw.usage.target_calls : reserved) : raw.usage.target_calls, simulated_calls:failure ? null : raw.usage.simulated_calls || 0,
-      metrics:failure ? null : raw.metrics, error:failure ? { code:failure.code || 'EVALUATION_FAILED', message:failure.message } : null };
-    S.append(store, 'RESULT', data, artifacts);
-    if (!failure && !S.state(store).baseline_checked && baselineReady(store)) S.append(store, 'BASELINE_CHECKED', {});
-    return { ok:!failure, outcome:data.status, ...data, result:failure ? undefined : visibleResult(raw, contract, input.split) };
-  } finally { release(); }
+    return settle(store,reservedRun,request,command);
+  } finally { release?.(); }
 }
 function finalize(input) {
   const root = path.resolve(input.run), release = S.lock(root);
@@ -365,7 +394,16 @@ function finalize(input) {
     C.check(state.baseline_checked, 'BASELINE_REQUIRED', 'Complete comparable baseline before finalization');
     C.check(input.version && state.versions[input.version], 'UNKNOWN_VERSION', 'A selected --version is required');
     C.check(STOP_REASONS.includes(input.reason), 'INVALID_STOP_REASON', 'Explicit --reason is required', { allowed:STOP_REASONS });
-    const comparable = Object.values(state.runs).find(r => r.version_id === input.version && r.split === 'validation' && r.status === 'succeeded');
+    if (store.contract.task.max_layers) {
+      const layers = require('./layers.cjs').snapshot(store);
+      const last = layers.at(-1);
+      C.check(['completed','partial'].includes(last?.status) && (last.level === store.contract.task.max_layers ||
+        !last.nodes.some(n => n.status === 'completed') || ['budget_exhausted','target_reached','operator_stop','cancelled','plateau'].includes(input.reason)),
+        'LAYER_INCOMPLETE', 'Finish the batch and record the stopping decision');
+      C.check(layers.some(layer => layer.nodes.some(n => n.status === 'completed' && n.version_id === input.version)),
+        'VALIDATION_REQUIRED', 'Select a version from a completed node');
+    }
+    const comparable = Object.values(state.runs).find(r => r.kind !== 'original' && r.version_id === input.version && r.split === 'validation' && r.status === 'succeeded');
     C.check(comparable, 'VALIDATION_REQUIRED', 'Selected version needs a complete validation result');
     S.append(store, 'FINALIZED', { version_id:input.version, selected_run_id:comparable.run_id,
       stop_reason:input.reason, test_status:'not_tested', release_decision:null });

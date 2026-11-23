@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 class ToolError extends Error {
   constructor(code, message, details = {}) { super(message); this.code = code; this.details = details; }
 }
