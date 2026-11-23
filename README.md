@@ -1,6 +1,6 @@
 # Prompt Tree
 
-[English](README.en.md) · [运行示例](#先看一棵树) · [贡献指南](CONTRIBUTING.md)
+[English](README.en.md) · [运行示例](#先看一棵树) · [贡献指南](CONTRIBUTING.md) · [MIT 许可证](LICENSE)
 
 用项目自己的样例，找出哪一处 Prompt 改动值得保留。这个 Codex Skill 会追踪实际发给模型的消息，跑出基线，再把每个改动假设画成一个分支。点开离线报告里的节点，就能看到改了哪句话、哪条失败样例促成了修改，以及验证分数有没有提高。
 
@@ -20,7 +20,7 @@ npm run demo
 
 ## 安装到业务项目
 
-需要 Codex 和 Node.js 22+。下面的命令从私有仓库克隆工具，并把完整 Skill 放入目标项目。将 `/path/to/your-project` 换成业务项目的路径。
+需要 Codex 和 Node.js 22+。下面的命令克隆仓库，并把完整 Skill 放入目标项目。将 `/path/to/your-project` 换成业务项目的路径。
 
 ```sh
 git clone https://github.com/acse-bq23/prompt-tree.git

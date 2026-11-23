@@ -1,5 +1,6 @@
 ---
 name: prompttree
+license: MIT
 description: 在新项目中定位值得优化的 Prompt，利用已有样例设计评测，澄清业务标准后自动运行基线和最小改动候选，生成可追溯的 Prompt Tree。
 ---
 

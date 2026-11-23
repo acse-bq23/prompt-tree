@@ -1,6 +1,7 @@
 {
   "name": "prompt-tree",
   "private": true,
+  "license": "MIT",
   "description": "A Codex skill for comparing small prompt edits against project examples.",
   "engines": {
     "node": ">=22"

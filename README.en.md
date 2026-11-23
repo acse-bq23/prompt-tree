@@ -1,6 +1,6 @@
 # Prompt Tree
 
-[简体中文](README.md) · [Run the example](#see-a-tree) · [Contributing](CONTRIBUTING.md)
+[简体中文](README.md) · [Run the example](#see-a-tree) · [Contributing](CONTRIBUTING.md) · [MIT License](LICENSE)
 
 Use your project's own examples to decide which prompt edit to keep. This Codex skill traces the messages your application sends to its model, runs a baseline, and tests each hypothesis on a separate branch. Open a node in the offline report to see the wording change, the failure that motivated it, and the validation score.
 
@@ -20,7 +20,7 @@ Open the printed `report` path to inspect each node, its evidence, and its diff.
 
 ## Install in a project
 
-You need Codex and Node.js 22 or later. Clone this private repository and copy the complete skill into the target project. Replace `/path/to/your-project` with its path.
+You need Codex and Node.js 22 or later. Clone the repository and copy the complete skill into the target project. Replace `/path/to/your-project` with its path.
 
 ```sh
 git clone https://github.com/acse-bq23/prompt-tree.git
