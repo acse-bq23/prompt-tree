@@ -1,30 +1,32 @@
-# <img src="skills/prompttree/assets/prompt-tree-mark.png" width="44" height="44" align="absmiddle" alt=""> Prompt Tree
+<p align="right"><a href="README.en.md" lang="en">English</a></p>
 
-[English](README.en.md) · [示例报告](examples/reports/) · [Skill 使用说明](skills/prompttree/SKILL.md)
+<h1 align="center"><img src="skills/prompttree/assets/prompt-tree-mark.png" width="40" height="40" align="top" alt=""> Prompt Tree</h1>
 
-Prompt Tree 是一个 Codex Skill。它用项目自己的样例评测当前 Prompt，从答错的样本提出小改动，再把各版本的来路、分数和逐题差异放进一棵可交互的树。你可以从最终入选的版本一路追到源文件，也可以直接比较两条不同分支。
+<p align="center"><strong>改一句 Prompt，哪些题答对了，哪些又退步了？</strong><br>
+一个用项目样例评测 Prompt 的 Codex Skill。从错例生成分支，在树上对照指令、得分和逐题变化。</p>
 
-## 先看一棵树
+<div align="center">
 
-下面是 Restaurant8K 餐厅预订字段抽取实验的实际录屏。看 17 个版本如何长成六层，再点开 L6-N1 的逐轮成绩。它在验证复测中领先 L6-N2 **1.11 个百分点**，独立测试中两版只差 **0.17 个百分点**。
+[查看交互报告][restaurant] · [运行本地示例](#本地试跑)
 
-[![Restaurant8K 的六层树从根节点逐步展开，最后打开 L6-N1 的验证与独立测试成绩](examples/reports/restaurant8k-growth.gif)](examples/reports/restaurant8k.html)
+</div>
 
-[打开中文交互报告](examples/reports/restaurant8k.html) · [English report](examples/reports/restaurant8k.en.html) · [查看静态全图](examples/reports/restaurant8k-preview.png)
+## Restaurant8K 实测
 
-## 从一个示例开始
+**88.17% → 91.06%**　餐厅预订字段抽取的平均准确率提高了 2.89 个百分点。原版和按验证集选出的版本分别在同一批 360 条独立测试样本上跑了五轮。
 
-| 你想看什么 | 示例 | 可以验证的结果 |
-| --- | --- | --- |
-| 在自己的电脑上跑完整流程 | [合成工单路由 · 可运行](examples/label-routing/README.md) | 三种错误长出三条分支。验证集从 1/4 到 3/4，全程使用本地模拟模型。 |
-| 为什么要回访旧分支 | Banking77 · [中文](examples/reports/banking77.html) / [English](examples/reports/banking77.en.html) | 第 5 轮从第 2 层的 L2-N2 再分叉。新分支在验证集改对 4 题、改错 9 题，最终选中较早的 L2-N3。 |
-| 单次分数最高的版本是否值得锁定 | Restaurant8K · [中文](examples/reports/restaurant8k.html) / [English](examples/reports/restaurant8k.en.html) | 比较 L6-N1 和 L6-N2，观察初筛排名如何在五轮复测后反转，再看独立测试能否复现差距。 |
+<div align="center">
 
-在 GitHub 点击 HTML 链接后，选择 **Download raw file**，再用浏览器打开；克隆仓库后也可直接双击 HTML。两份真实实验报告都内置数据，无需 API key。树支持缩放、适应视窗和节点展开，在「Prompt 对比」可以左右选择任意两版。[数据来源、许可与演示路径](examples/reports/README.md)
+[<img src="examples/reports/restaurant8k-growth.gif" width="560" alt="17 个 Prompt 版本长成六层树，点击动图可打开交互报告">][restaurant]<br>
+<sub>17 个版本，6 层分支。[查看静态全图](examples/reports/restaurant8k-preview.png)</sub>
 
-## 本地跑一棵树
+</div>
 
-需要 Node.js 22 或更高版本。演示使用 Node 标准库，直接运行：
+在「Prompt 对比」中，左选原版 `L1-N1`、右选入选版 `L6-N1`，可以核对每轮成绩。
+
+## 本地试跑
+
+用本地模拟模型对 12 条合成工单做标签分类。准备 Git 和 Node.js 22+ 即可运行，无需安装依赖或配置 API key。
 
 ```sh
 git clone https://github.com/acse-bq23/prompt-tree.git
@@ -32,28 +34,72 @@ cd prompt-tree
 npm run demo
 ```
 
-输出中的 `report` 指向中文版，`report_en` 指向英文版。打开任一 HTML 即可查看。试着比较根节点与一个子节点，看看新增的指令修好了哪些工单。若要接入已有的批处理基线，可参考[商城售后项目的输入、金标准和评测脚本](examples/after-sales/README.md)。
+**预期结果**　4 条验证工单按标签是否全部正确计分，原版答对 **1/4**，入选版答对 **3/4**。用浏览器打开终端输出的 `report`（中文）或 `report_en`（英文）。
 
-## 在自己的项目中使用
+<details>
+<summary>查看第一条分支改了哪句话</summary>
 
-从本仓库根目录把整个 Skill 复制到目标项目：
+比较根节点 `L1-N1` 和子节点 `L2-N1`，可以看到这处改动。
 
-```sh
-mkdir -p /path/to/your-project/.agents/skills
-cp -R skills/prompttree /path/to/your-project/.agents/skills/
+```diff
+- Return a matching label.
++ Return all matching labels.
 ```
 
-在目标项目中打开 Codex，例如输入：
+对工单 `payment reversed and login blocked`，子版同时报出 `billing` 和 `access`，补回了原版漏掉的登录问题。仅这一步，验证成绩就到了 **2/4**。[示例数据与评分规则](examples/label-routing/README.md)
 
-> 用 $prompttree 优化这个项目的客服路由 Prompt，最多探索六层。先定位实际调用的 Prompt 和现有评分脚本，核对数据切分与金标准。跑出基线后，根据错例提出小改动，最后比较入围版本，生成报告。
+</details>
 
-1. **建立基线。** 确认 Prompt 源文件、模板、评测器和指标，按工单或会话等独立单位切分数据。用固定输入和评分器评测原版。
-2. **让分支长在具体错例上。** 每个子版针对直接父版的一类探索集错误，保留修改依据和完整 Prompt。通常优先将每步改动控制在父版文本的 5% 以内，超过 10% 时复核。后续提案会查看祖先和旁支；达到深度上限后，仍可回访有互补收益的旧节点。
-3. **用验证复测选版。** 锁版前让入围版本在同一批验证题上重复运行，观察波动并比较均值。预先约定什么差距值得换版。进入最高档的候选还可比较误拒率、Prompt 长度。
-4. **用独立测试检验选版结果。** 锁版后用另一批留出的题检验优势能否保持。项目可通过 `report-test` 将测试回执附到同一份报告，分别查看初筛、验证复测与独立测试。
+## 接入自己的项目
 
-例如，Restaurant8K 把探索、验证、独立测试各固定为 360 题。在这批样本上，L6-N1 验证均值领先 L6-N2 **1.11 个百分点**，超过事先约定的 1 个百分点门槛。独立测试上，L6-N2 反超 **0.17 个百分点**，两版同档。这个门槛用于选版，**同档**表示两版的实测差距小于约定的实际提升幅度。
+准备项目实际调用的 Prompt，以及有预期答案或明确评分规则的样例。Codex 可以复用已有评测器，也可以按你确认的规则编写适配器。[已有批处理基线的接入示例](examples/after-sales/README.md)
 
-## 接入与维护
+### 安装 Skill
 
-[首次接入](skills/prompttree/references/intake.md) · [配置、数据与评测回执](skills/prompttree/references/contracts.md) · [分支与回访规则](skills/prompttree/references/layers.md) · [恢复中断的实验](skills/prompttree/references/recovery.md) · [贡献指南](CONTRIBUTING.md) · [代码许可证 MIT](LICENSE)
+从刚克隆的 `prompt-tree` 目录执行。把第一行换成目标项目的实际路径。
+
+```sh
+project="/path/to/your-project"
+mkdir -p "$project/.agents/skills"
+cp -R skills/prompttree "$project/.agents/skills/"
+```
+
+### 在 Codex 中测基线
+
+在目标项目中打开 Codex，先请它只测原版。
+
+> 用 $prompttree 评测这个项目的客服路由 Prompt，只跑一层基线。先确认样例和评分标准，估算模型调用量。跑完后给我基线分数、主要错例，以及继续探索两层需要的预算。
+
+<details>
+<summary>预算确认后，探索多个版本</summary>
+
+> 用 $prompttree 优化这条 Prompt，最多六层，原版算第一层。按刚确认的预算，从探索集错例提出改法，在验证集上复测入围版本。交付入选 Prompt、实验摘要和对比报告。
+
+验证集用来选版。如果项目还留有独立测试集，锁版后可用它检验效果，并将结果附到同一份报告。
+
+</details>
+
+有关数据切分、分支回访和中断恢复的细节，参见 [Skill 使用说明](skills/prompttree/SKILL.md)。
+
+## 实验案例
+
+### Banking77 · 一条新规则带来了哪些回归？
+
+**修好 4 题，也改错 9 题。** 第 5 轮回访旧分支，新版在验证集上得分下降。最终保留了较早的 `L2-N3`。[比较父版 L2-N2 与子版 L3-N4][banking]
+
+### Restaurant8K · 单次最高分值得直接采用吗？
+
+**初筛领先的版本，在五轮验证后被反超。** 右版初筛领先，左版在验证复测中平均领先 **1.11 个百分点**，按预设规则入选。独立测试中右版领先 **0.17 个百分点**，低于预定的 1 个百分点门槛。[比较左版 L6-N1 与右版 L6-N2][restaurant]
+
+两份报告都可离线阅读。克隆后直接打开 HTML，也可以从报告目录选择语言，在 GitHub 文件页点击 **Download raw file** 保存副本。[报告下载与数据来源](examples/reports/README.md)
+
+## 参与贡献
+
+报告评分或分支选择问题时，请附上一条能复现问题的样例，以及预期和实际结果。修改代码前可先阅读[贡献指南](CONTRIBUTING.md)。
+
+## 许可证
+
+Prompt Tree 的代码采用 [MIT 许可证](LICENSE)。示例报告中的 Banking77 和 Restaurant8K 数据摘录与标注采用 CC BY 4.0。
+
+[restaurant]: https://livecodes.io/?mode=result&x=https://github.com/acse-bq23/prompt-tree/blob/main/examples/reports/restaurant8k.html
+[banking]: https://livecodes.io/?mode=result&x=https://github.com/acse-bq23/prompt-tree/blob/main/examples/reports/banking77.html
