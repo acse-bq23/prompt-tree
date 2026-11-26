@@ -72,6 +72,8 @@ test('portable CLI completes Probe, reopens records and produces safe independen
   assert.equal(result.manifest.test_status, 'not_tested'); assert.equal(result.manifest.release_decision, null);
   assert.equal(result.manifest.counts.derivations, 2); assert.equal(result.manifest.counts.evaluations, 4);
   const html = fs.readFileSync(result.report, 'utf8');
+  const logo = fs.readFileSync(path.join(copied, 'assets/prompt-tree-mark.png'), 'base64');
+  assert.ok(html.includes('src="data:image/png;base64,' + logo + '"'));
   assert.ok(!html.includes('</script><script>untrusted()'));
   assert.ok(!html.includes('VALIDATION_ONLY_SECRET'));
   assert.ok(!/\b(?:fetch|XMLHttpRequest|WebSocket)\s*\(/.test(html));

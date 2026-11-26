@@ -35,6 +35,8 @@ node <cli> finalize --run .prompttree/runs/R-001 --version VERSION_ID --reason p
 
 达到最大层数使用 depth_limit。其他可选停止理由由 `--help` 和 [执行合同](references/contracts.md) 指明。输出 `summary.md`、`report.html`、完整 Prompt、版本来路与评测。先读 manifest 与摘要，再审阅树、差异和失败依据。Probe 的独立测试始终为 `not_tested`，正式发布结论为空。
 
+报告格式要求：离线 `report.html` 的页首须在 Prompt Tree 名称旁显示项目 Logo（`assets/prompt-tree-mark.png`）。导出时将 PNG 内嵌到 HTML，使报告可作为单文件离线打开。
+
 默认生成交付文件，应用到原项目需要用户要求。报告与评测的案例导出由任务证据策略控制，默认不分享业务原文。
 
 ## 中断与继续

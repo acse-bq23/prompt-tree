@@ -1,4 +1,4 @@
-# Prompt Tree
+# <img src="skills/prompttree/assets/prompt-tree-mark.png" width="44" height="44" align="absmiddle" alt=""> Prompt Tree
 
 [English](README.en.md) · [运行示例](#先看一棵树) · [贡献指南](CONTRIBUTING.md) · [MIT 许可证](LICENSE)
 

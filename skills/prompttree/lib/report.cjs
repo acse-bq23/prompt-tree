@@ -121,7 +121,9 @@ function exportReport(store) {
     '完整内容位于 optimized-prompt/，含候选与基准快照。按项目已验证的候选入口接入；若有原生文本及 integration.patch，先在隔离副本核对补丁和原流程，回退时恢复基准。未自动修改原项目或发布。\n\n' +
     '结果以 manifest.json 与 evolution.json 为准。保留本地实验目录可查询完整运行与证据；可分享报告只导出合同允许的内容。\n';
   C.atomic(path.join(output, 'summary.md'), summary);
-  const template = fs.readFileSync(path.join(__dirname, '../assets/report.html'), 'utf8');
+  const logo = fs.readFileSync(path.join(__dirname, '../assets/prompt-tree-mark.png'), 'base64');
+  const template = fs.readFileSync(path.join(__dirname, '../assets/report.html'), 'utf8')
+    .replace('REPORT_LOGO_BASE64', logo);
   const serialized = JSON.stringify(model).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
   C.check(template.includes('REPORT_DATA'), 'INVALID_REPORT_ASSET', 'Portable report template missing');
   C.atomic(path.join(output, 'report.html'), template.replace('REPORT_DATA', () => serialized));
