@@ -72,11 +72,12 @@ function explore(run) {
     for (const n of receipt.nodes.filter(n=>n.status==='completed')) {
       if (!best || n.validation_metrics.exact_set.value > best.validation_metrics.exact_set.value) best=n;
     }
+    if (receipt.next === 'review_whole_tree') return {run, next:receipt.next, review:call('tree-review','--run',run)};
     if (receipt.next === 'finalize') break;
     plan = nextPlan(run,receipt);
   }
   const finalized = call('finalize','--run',run,'--version',best.version_id,'--reason','depth_limit');
-  return { run, report:finalized.report, comparison:finalized.manifest.comparison, counts:finalized.manifest.counts, usage:finalized.manifest.usage };
+  return { run, report:finalized.report, report_en:finalized.report_en, comparison:finalized.manifest.comparison, counts:finalized.manifest.counts, usage:finalized.manifest.usage };
 }
 if (require.main === module) {
   const run = process.argv[2] === '--resume' ? path.resolve(process.argv[3]) : prepare();

@@ -1,0 +1,37 @@
+{
+  "schema_version": "prompttree-task-v1",
+  "mode": "probe",
+  "max_layers": 2,
+  "objective": "为售后咨询返回符合当前诉求的办理入口",
+  "primary_metric": "correct_action",
+  "metrics": [
+    "correct_action"
+  ],
+  "rules": [
+    {
+      "id": "current-intent",
+      "version": "1",
+      "source": "README.md#业务口径"
+    }
+  ],
+  "datasets": {
+    "search": {
+      "path": "data/search.json",
+      "expected_cases": 68
+    },
+    "validation": {
+      "path": "data/validation.json",
+      "expected_cases": 32
+    }
+  },
+  "budget": {
+    "max_attempts": 4,
+    "max_evaluations": 4,
+    "max_target_calls": 0,
+    "max_wall_time_seconds": 900
+  },
+  "evidence": {
+    "search_cases_visible": true,
+    "export_search_cases": true
+  }
+}

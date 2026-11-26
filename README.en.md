@@ -1,52 +1,59 @@
 # <img src="skills/prompttree/assets/prompt-tree-mark.png" width="44" height="44" align="absmiddle" alt=""> Prompt Tree
 
-[简体中文](README.md) · [Run the example](#see-a-tree) · [Contributing](CONTRIBUTING.md) · [MIT License](LICENSE)
+[简体中文](README.md) · [Example reports](examples/reports/) · [Skill instructions](skills/prompttree/SKILL.md)
 
-Use your project's own examples to decide which prompt edit to keep. This Codex skill traces the messages your application sends to its model, runs a baseline, and tests each hypothesis on a separate branch. Open a node in the offline report to see the wording change, the failure that motivated it, and the validation score.
+Prompt Tree is a Codex skill for evaluating prompt edits on your project's own examples. It runs a baseline, proposes small changes grounded in failed cases, and records the prompts, scores and per-case differences in an interactive tree. Trace a selected version back to its source or compare two branches side by side.
 
-## See a tree
+## Watch a tree grow
 
-This is the HTML report from the three-level synthetic ticket experiment. The root is at the bottom. Each edge represents one edit relative to its parent. Cards show the level and node ID, evaluation state, validation score, and expansion decision. The selected version is highlighted in green.
+This recording follows the Restaurant8K booking-field experiment as 17 prompt versions grow across six levels. At the end, the selected node opens to reveal its scores. L6-N1 led L6-N2 by **1.11 percentage points** on repeated validation. Their independent test means were only **0.17 points** apart.
 
-![HTML report showing one root, three evidence-based branches and six third-level candidates](examples/label-routing/tree-preview.png)
+[![The Restaurant8K tree grows from its root through six levels, then opens the validation and test scores for L6-N1](examples/reports/restaurant8k-growth.en.gif)](examples/reports/restaurant8k.en.html)
 
-The baseline classified 1/4 validation tickets correctly. Three edits addressed missing labels, letter case, and password synonyms. Each scored 2/4. Each parent then had two remaining error patterns, yielding six third-level candidates at 3/4. Of 20 split requests, 16 ran the local mock and four reused an identical evaluated version. [Example and scoring rule](examples/label-routing/README.md)
+[Open the English report](examples/reports/restaurant8k.en.html) · [中文报告](examples/reports/restaurant8k.html) · [Static overview (Chinese)](examples/reports/restaurant8k-preview.png)
 
-```sh
-npm run demo
-```
+## Pick an example
 
-Open the printed `report` path to inspect each node, its evidence, and its diff.
+| What to explore | Example | What to look for |
+| --- | --- | --- |
+| Run the workflow locally | [Synthetic ticket routing · runnable](examples/label-routing/README.md) | Three failure patterns produce three branches. Validation goes from 1/4 to 3/4 using a local mock. |
+| See why an older branch gets another try | Banking77 · [English](examples/reports/banking77.en.html) / [中文](examples/reports/banking77.html) | Round 5 branches from L2-N2 at depth 2. The new prompt fixes four validation cases and breaks nine. The earlier L2-N3 is selected. |
+| Check whether the initial winner holds up | Restaurant8K · [English](examples/reports/restaurant8k.en.html) / [中文](examples/reports/restaurant8k.html) | Compare L6-N1 and L6-N2. Five validation repeats reverse the screening order. A separate test measures the gap on held-out examples. |
 
-## Install in a project
+On GitHub, open an HTML file, choose **Download raw file**, then open the download in your browser. From a clone, open the HTML directly. Both measured reports include their data and work offline without credentials. Zoom the tree, fit it to the viewport, or select any two versions under **Prompt comparison**. Prompt text, example inputs and recorded experiment notes retain their original language. [Dataset credits, licenses and demo walkthroughs](examples/reports/README.md)
 
-You need Codex and Node.js 22 or later. Clone the repository and copy the complete skill into the target project. Replace `/path/to/your-project` with its path.
+## Run a tree locally
+
+Use Node.js 22 or later. The example runs with the Node standard library.
 
 ```sh
 git clone https://github.com/acse-bq23/prompt-tree.git
 cd prompt-tree
+npm run demo
+```
+
+Open the file printed under `report_en` for English or `report` for Chinese. Compare the root with a child to see the instruction that changed and the tickets it fixed. For a project with an existing batch baseline, the [after-sales example](examples/after-sales/README.md) includes inputs, gold answers and an evaluator.
+
+## Use the skill in your project
+
+From the repository root, copy the complete skill into your target project:
+
+```sh
 mkdir -p /path/to/your-project/.agents/skills
 cp -R skills/prompttree /path/to/your-project/.agents/skills/
 ```
 
-Open Codex in that project and ask:
+Open the target project in Codex and ask, for example:
 
-> Use $prompttree to find a prompt worth improving and design tests from existing examples. Ask me about unresolved business rules. Once they're settled, compare minimal edits and generate the prompt tree.
+> Use $prompttree to improve the customer-support routing prompt. Explore up to six levels. Locate the actual prompt and evaluator, check the data splits and gold answers, then run a baseline. Use failed examples to propose small edits, compare the finalists and generate a report.
 
-## How it chooses a version
+1. **Establish a baseline.** Identify the prompt sources, template, evaluator and metric. Split examples by independent units such as tickets or conversations. Score the original version on fixed inputs.
+2. **Follow the evidence.** Each child addresses a failure mechanism observed on its parent's search split. Keep the rationale and prompt snapshot. Aim for edits within 5% of the parent text and review changes above 10%. Later proposals draw on ancestors and siblings. Older branches with complementary fixes can be revisited even after another path reaches the depth limit.
+3. **Select on repeated validation.** Before locking the prompt, rerun the finalists on the same validation examples to measure variability and compare means. Set a minimum meaningful gain in advance. Within the top tier, false rejections and prompt length can decide the selection.
+4. **Check the decision on held-out data.** After locking, evaluate on a separate test set to see whether the advantage carries over. Use `report-test` to attach project test receipts and inspect screening, validation repeats and independent tests in the same report.
 
-1. **Choose a depth.** Codex first asks how many levels to explore. The original prompt is level 1. Each parent branches according to its own errors.
-2. **Identify the prompt and scoring rule.** Codex follows the application call, checks examples and expected outcomes, and reuses or writes an evaluator. If the specification leaves partial credit undefined for a missing label, for example, it asks you to decide. Paid evaluations use the authorized budget.
-3. **Establish a baseline.** Reuse existing search and validation splits, or partition examples by independent units such as tickets or conversations. The intake plan identifies missing expected outcomes or independent samples.
-4. **Review a whole layer.** An active Codex session submits one background batch, waits for its completion receipt, reviews each parent, and continues to the next level. Each edge cites a parent search failure and a confirmed rule. Before evaluation, the CLI checks that the edit touches one editable field, one message, and one contiguous line hunk. A tie can keep the baseline. The report records exploratory results. Formal acceptance requires independent testing.
+Restaurant8K used 360 examples each for search, validation and testing. On these samples, L6-N1 led L6-N2 by **1.11 percentage points** in mean validation accuracy, clearing the preset one-point margin. On the independent test set, L6-N2 led by **0.17 points**. The test results fall in the same practical tier because the observed difference is below that margin.
 
-If the waiting client closes, reconnect with `layer-resume --run RUN --level N --wait`. Recovery reuses recorded results and collects the original evaluator receipt for an in-flight request. An unconfirmed remote outcome holds its budget pending reconciliation. A fully closed Codex session can resume from the journal when reopened. [Batch format and states](skills/prompttree/references/layers.md)
+## Integration and maintenance
 
-## Find your way around
-
-| Task | Start here |
-| --- | --- |
-| Understand the first run in a new project | [Project intake](skills/prompttree/references/intake.md) (Chinese) |
-| Connect an evaluator, examples, and scoring rules | [Configuration and results](skills/prompttree/references/contracts.md) (Chinese) |
-| Check budgets or resume a run | [Recovery and budgets](skills/prompttree/references/recovery.md) (Chinese) |
-| Change the code, run tests, or report a bug | [Contributing](CONTRIBUTING.md) |
+[Project intake](skills/prompttree/references/intake.md) · [Configuration, datasets and receipts](skills/prompttree/references/contracts.md) · [Branching and revisits](skills/prompttree/references/layers.md) · [Run recovery](skills/prompttree/references/recovery.md) · [Contributing](CONTRIBUTING.md) · [MIT code license](LICENSE)

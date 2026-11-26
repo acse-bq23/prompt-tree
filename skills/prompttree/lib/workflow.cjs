@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const C = require('./core.cjs');
 const S = require('./store.cjs');
 const R = require('./runner.cjs');
+const { promptText, editSize } = require('./edit-size.cjs');
 
 const home = path.resolve(__dirname, '..');
 const STOP_REASONS = ['depth_limit','target_reached','budget_exhausted','plateau','no_valid_candidate','runner_error','operator_stop','cancelled','contract_changed'];
@@ -123,7 +124,8 @@ async function prepare({ project:projectFile, task:taskFile, run }) {
   C.check(task.budget && task.datasets, 'INVALID_CONFIG', 'budget and datasets required');
   C.check(Object.keys(task.datasets).every(name => ['search','validation'].includes(name)), 'INVALID_SPLIT', 'Probe configuration accepts search and validation only');
   for (const key of ['max_attempts','max_evaluations','max_wall_time_seconds']) C.budgetNumber(task.budget[key], key);
-  C.check(Number.isSafeInteger(task.budget.max_target_calls) && task.budget.max_target_calls >= 0, 'INVALID_BUDGET', 'max_target_calls must be nonnegative');
+  const callLimit = task.budget.max_target_calls;
+  C.check(callLimit === undefined || (Number.isSafeInteger(callLimit) && callLimit >= 0), 'INVALID_BUDGET', 'max_target_calls must be a nonnegative integer when supplied');
   C.check(task.primary_metric && Array.isArray(task.metrics) && task.metrics.includes(task.primary_metric), 'INVALID_CONFIG', 'metrics and primary_metric required');
   C.check(Number.isFinite(task.baseline_tolerance || 0) && (task.baseline_tolerance || 0) >= 0, 'INVALID_CONFIG', 'Invalid baseline_tolerance');
   const policy = typeof project.policy_ref === 'string' ? C.readJSON(absolute(base, project.policy_ref)) : project.policy;
@@ -147,7 +149,11 @@ async function prepare({ project:projectFile, task:taskFile, run }) {
   C.check(!splitInfo.search.ids.some(id => splitInfo.validation.ids.includes(id)), 'DATA_LEAKAGE', 'Search and validation case IDs overlap');
   C.check(Array.isArray(project.protected_files) && project.protected_files.length, 'INVALID_CONFIG', 'protected_files must name the evaluator and business code');
   const protectedFiles = project.protected_files.map(s => absolute(project.workspace, s));
-  const files = C.fingerprint([...new Set([project.prompt_entry, ...protectedFiles,
+  C.check(project.prompt_sources === undefined || (Array.isArray(project.prompt_sources) && project.prompt_sources.length > 0),
+    'INVALID_CONFIG', 'prompt_sources must list the original prompt files');
+  const promptSources = (project.prompt_sources || []).map(file => absolute(project.workspace, file));
+  const baselineReports = project.baseline_accuracy_report === undefined ? [] : [absolute(project.workspace, project.baseline_accuracy_report)];
+  const files = C.fingerprint([...new Set([project.prompt_entry, ...promptSources, ...baselineReports, ...protectedFiles,
     ...commandFiles(project.workspace, project.evaluate_argv), ...commandFiles(project.workspace, project.render_argv || []),
     ...commandFiles(project.workspace, project.original_evaluate_argv || []), ...Object.values(task.datasets).map(d => d.path)])]);
   const missing = project.env_required.filter(name => !process.env[name]);
@@ -332,7 +338,7 @@ async function evaluate(input, lockedStore) {
         if (!derivation) {
           const attempt = store.events.findLast(e=>e.type==='ATTEMPT' && e.data.request_id===input.requestId);
           const registeredHere = store.events.some(e=>e.seq>attempt.seq && e.type==='VERSION' && e.data.version_id===versionId);
-          derivation = { ...proposal, changed_path:changedPath, proposal_hash:proposalHash, event_id:'E-' + String(state.derivations.length).padStart(3, '0'), version_id:versionId,
+          derivation = { ...proposal, edit_size:editSize(promptText(parentVersion.rendered), promptText(template)), changed_path:changedPath, proposal_hash:proposalHash, event_id:'E-' + String(state.derivations.length).padStart(3, '0'), version_id:versionId,
             kind:registeredHere ? 'candidate' : 'reference', created_at:attempt.at };
           const artifact = S.blob(store, 'proposals/' + derivation.event_id + '.json', derivation);
           S.append(store, 'DERIVATION', derivation, [artifact]);
@@ -351,7 +357,8 @@ async function evaluate(input, lockedStore) {
       return { ok:true, outcome:'reused', ...data, result:visibleResult(C.readJSON(C.inside(root, cached.result_path)), contract, input.split) };
     }
     const used = usage(store), reserved = contract.split_info[input.split].count * contract.project.target_calls_per_case_bound;
-    if (used.evaluations >= contract.task.budget.max_evaluations || used.target_calls + reserved > contract.task.budget.max_target_calls || Date.now() >= Date.parse(contract.deadline_at)) {
+    const callLimit = contract.task.budget.max_target_calls;
+    if (used.evaluations >= contract.task.budget.max_evaluations || (callLimit !== undefined && used.target_calls + reserved > callLimit) || Date.now() >= Date.parse(contract.deadline_at)) {
       S.append(store, 'REJECTED', { request_id:input.requestId, code:'BUDGET_EXHAUSTED' });
       throw new C.ToolError('BUDGET_EXHAUSTED', 'Insufficient evaluation, call or time budget');
     }
@@ -388,25 +395,50 @@ function finalize(input) {
     if (state.finalized) {
       C.check((!input.version || input.version === state.finalized.version_id) && (!input.reason || input.reason === state.finalized.stop_reason),
         'FINALIZED', 'Final selection is immutable');
+      if (input.retest) {
+        C.check(state.finalized.validation_retest && C.hash(state.finalized.validation_retest) ===
+          C.hash(require('./retest.cjs').summarizeRetest(store,input.retest)), 'FINALIZED', 'Final retest evidence is immutable');
+      }
       return require('./report.cjs').exportReport(store);
     }
     C.check(!state.pending.length, 'UNKNOWN_EXECUTION', 'Unconfirmed executions prevent finalization');
     C.check(state.baseline_checked, 'BASELINE_REQUIRED', 'Complete comparable baseline before finalization');
     C.check(input.version && state.versions[input.version], 'UNKNOWN_VERSION', 'A selected --version is required');
     C.check(STOP_REASONS.includes(input.reason), 'INVALID_STOP_REASON', 'Explicit --reason is required', { allowed:STOP_REASONS });
+    let closureReview;
     if (store.contract.task.max_layers) {
-      const layers = require('./layers.cjs').snapshot(store);
+      const L = require('./layers.cjs');
+      const layers = L.snapshot(store);
       const last = layers.at(-1);
-      C.check(['completed','partial'].includes(last?.status) && (last.level === store.contract.task.max_layers ||
+      const depth = L.depthReview(store, layers);
+      const atDepthLimit = depth.capped.length > 0;
+      C.check(input.reason !== 'depth_limit' || atDepthLimit, 'LAYER_INCOMPLETE', 'Tree has not reached the agreed depth');
+      C.check(['completed','partial'].includes(last?.status) && (atDepthLimit ||
         !last.nodes.some(n => n.status === 'completed') || ['budget_exhausted','target_reached','operator_stop','cancelled','plateau'].includes(input.reason)),
         'LAYER_INCOMPLETE', 'Finish the batch and record the stopping decision');
+      if (depth.required && ['depth_limit','plateau','no_valid_candidate'].includes(input.reason)) {
+        C.check(input.reason !== 'depth_limit' && input.review, 'TREE_REVIEW_REQUIRED',
+          'Run tree-review, revisit supported directions, or finalize with a reviewed plateau or no_valid_candidate decision');
+        const audit = L.treeReview(store, layers), decision = C.readJSON(path.resolve(input.review));
+        const entries = decision.nodes;
+        C.check(decision.snapshot_id === audit.snapshot_id && Array.isArray(entries) && entries.length === audit.nodes.length,
+          'INVALID_TREE_REVIEW', 'Review the current snapshot and cover every completed node once');
+        const byId = new Map(entries.map(e => [e?.id,e]));
+        C.check(audit.nodes.every(n => {
+          const e = byId.get(n.id);
+          return e?.decision === (n.can_branch ? 'close' : 'depth_limit') && typeof e.reason === 'string' && e.reason.trim();
+        }), 'INVALID_TREE_REVIEW', 'Resolve remaining directions by layer-submit and explain the final disposition of each node');
+        closureReview = {snapshot_id:audit.snapshot_id,round:audit.round,nodes:entries.map(({id,decision,reason}) => ({id,decision,reason}))};
+      }
       C.check(layers.some(layer => layer.nodes.some(n => n.status === 'completed' && n.version_id === input.version)),
         'VALIDATION_REQUIRED', 'Select a version from a completed node');
     }
+    const retest = input.retest ? require('./retest.cjs').summarizeRetest(store,input.retest) : null;
+    C.check(!retest || retest.version_id === input.version, 'RETEST_SELECTION_MISMATCH', 'Select the version chosen by the frozen retest policy');
     const comparable = Object.values(state.runs).find(r => r.kind !== 'original' && r.version_id === input.version && r.split === 'validation' && r.status === 'succeeded');
     C.check(comparable, 'VALIDATION_REQUIRED', 'Selected version needs a complete validation result');
     S.append(store, 'FINALIZED', { version_id:input.version, selected_run_id:comparable.run_id,
-      stop_reason:input.reason, test_status:'not_tested', release_decision:null });
+      stop_reason:input.reason, ...(retest && {validation_retest:retest}), ...(closureReview && {tree_review:closureReview}), test_status:'not_tested', release_decision:null });
     return require('./report.cjs').exportReport(store);
   } finally { release(); }
 }

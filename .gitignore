@@ -7,3 +7,6 @@ __pycache__/
 *.pyc
 .prompttree/
 /work/
+
+/examples/after-sales/baseline/mock-*/
+/examples/after-sales/baseline/real-*/

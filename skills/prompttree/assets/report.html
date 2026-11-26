@@ -2,99 +2,748 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prompt Tree · Probe 报告</title>
+<title>{{Prompt Tree · Probe 报告}}</title>
 <style>
-:root{--bg:#f5f6ef;--paper:#fffef9;--ink:#253d2e;--muted:#72816d;--line:#dce3d3;--green:#356344;--danger:#9b4e3d}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 system-ui,sans-serif}header,main,footer{max-width:1320px;margin:auto;padding:24px}
-header{display:flex;justify-content:space-between;gap:24px;align-items:center;border-bottom:1px solid var(--line)}header b{display:flex;align-items:center;gap:9px;font-size:22px;letter-spacing:-1px}.badge{border:1px solid var(--line);border-radius:24px;padding:5px 14px;font-size:12px}
-h1{font-size:30px;line-height:1.3;margin:18px 0 8px}h2{font-size:17px;font-weight:600;margin:0 0 16px}h3{font-size:14px;margin:20px 0 8px}p{margin:8px 0}.muted,small{color:var(--muted)}.notice{padding:14px 18px;border-left:3px solid #ba974d;background:#fbf4df;margin:18px 0}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}.stat,.panel{border:1px solid var(--line);border-radius:12px;background:var(--paper);padding:18px}.stat b{display:block;font-size:24px}.stat span{font-size:12px;color:var(--muted)}.grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr);gap:18px}.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}button{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:6px 12px;background:var(--paper);color:var(--ink)}button:focus-visible{outline:3px solid #ba974d}button.active{background:var(--green);color:white}input[type=range]{accent-color:var(--green);max-width:240px}svg{width:100%;min-height:360px;background-image:radial-gradient(#dbe2d1 1px,transparent 1px);background-size:18px 18px;border-radius:8px}.edge{fill:none;stroke:#91a88a;stroke-width:2}.reference{stroke-dasharray:6 5;stroke:#ba974d}.node rect{fill:var(--paper);stroke:var(--line);stroke-width:1.5}.node{cursor:pointer}.node.selected rect{stroke:var(--green);stroke-width:3}.node text{fill:var(--ink);font:12px system-ui}.node .caption{fill:var(--muted);font-size:10px}.detail{min-width:0;max-height:950px;overflow:auto}pre{font:12px/1.7 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#f1f4eb;border-radius:6px;margin:8px 0}.diff{padding:10px;background:#f6f8f2;font:12px/1.7 ui-monospace,monospace;overflow-wrap:anywhere;white-space:pre-wrap}.add{background:#e2efd9}.remove{background:#f6e5df}.item{border-top:1px solid var(--line);padding:10px 0}ul{padding-left:22px}.error{color:var(--danger)}details{margin:12px 0}summary{cursor:pointer}.count{font-size:12px;line-height:2;margin-top:12px}footer{font-size:12px;color:var(--muted)}
-.grid.wide{grid-template-columns:minmax(0,1fr)}.grid>section{min-width:0}.node.winner rect{stroke:#36724d;fill:#e8f4e6}.node.incomplete rect{stroke:#ad7846;stroke-dasharray:4 2}
-@media(max-width:850px){header,main,footer{padding:18px}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.detail{max-height:none}h1{font-size:25px}}@media(prefers-reduced-motion:no-preference){.node{animation:arrive .4s ease-out}@keyframes arrive{from{opacity:0}to{opacity:1}}}
-</style>
-</head>
+:root{--ink:#263c30;--muted:#657465;--green:#39633b;--line:#dbe3d7;--paper:#fff;--mint:#eef4e9;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:#f6f8f3;color:var(--ink);font:14px/1.55 system-ui,sans-serif}header{border-bottom:1px solid var(--line);background:#fcfdfb}header>div,main{width:min(1480px,100%);margin:auto;padding:0 clamp(14px,3vw,48px)}header>div,.heading,.panelhead,.row,.transport{display:flex;align-items:center;justify-content:space-between;gap:12px}header>div{height:54px}header strong{font:600 17px Georgia,serif}.muted,small,.caption{color:var(--muted)}.heading{padding:22px 0}.heading h1{margin:0;font:500 clamp(26px,2.8vw,40px)/1.2 Georgia,system-ui,serif}.heading p{margin:6px 0 0;font-size:13px}.stats{display:flex;flex-wrap:wrap;gap:18px;border-left:2px solid #93ac86;padding:2px 0 2px 16px}.stat{display:grid}.stat b{font:500 24px/1.15 Georgia,serif}.stat span{font-size:11px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,30%);gap:16px;align-items:start}.panel{min-width:0;background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 3px 14px #25402608;overflow:hidden}.panelhead,.transport,.detail,.more{padding:16px 19px}h2,h3,p{margin:0}h2{font-size:18px}h3{font-size:14px;margin:16px 0 6px}.panelhead{border-bottom:1px solid var(--line)}.panelhead small{font:12px var(--mono)}.stage{overflow:auto;background-color:#fafbf7;background-image:radial-gradient(#cad5c4 .7px,transparent .7px),radial-gradient(ellipse at 34% 62%,#eaf2e58c,transparent 70%);background-size:18px 18px,100% 100%}#tree{display:block;width:100%;user-select:none}.level-line{stroke:#dfe6d9;stroke-dasharray:3 7}.level-name{font:10px var(--mono);fill:#778873;letter-spacing:1px}.edge,.particle{fill:none;stroke-linecap:round}.edge{stroke:#c1d1ba;stroke-width:2}.edge.active{stroke:#6f975e;stroke-width:2.7}.particle{stroke:#bad6a3;stroke-width:4;stroke-dasharray:.045 .955;stroke-dashoffset:1;opacity:0;pointer-events:none}.playing .particle.active{opacity:1;animation:flow 1.8s linear infinite}@keyframes flow{to{stroke-dashoffset:0}}
+.node{cursor:pointer;outline:none}.card{fill:white;stroke:#cfdbca;filter:drop-shadow(0px 3px 3px #35472c0e)}.node.winner .card{fill:#edf5e5;stroke:#a6bf96}.node.incomplete .card{stroke:#ad7866;stroke-dasharray:5 3}.halo{fill:none;stroke:#a8c396;opacity:0}.node.selected .halo,.node:focus-visible .halo{opacity:.85}.node.selected .card,.node:hover .card{stroke:#6a9257;stroke-width:1.7}.port{fill:white;stroke:#9db490}.divider{stroke:#e2e8dd}.meta,.status,.delta{font:10px var(--mono);fill:#5f7759}.node-title{font:500 13px system-ui;fill:var(--ink)}.score{font:24px Georgia,serif;fill:#345337}.delta.negative{fill:#a46150}
+button,select{cursor:pointer;font:inherit;color:var(--ink);border:1px solid var(--line);background:var(--paper);border-radius:7px;padding:6px 11px}button:hover,button[aria-pressed=true]{background:var(--mint)}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #6b935a;outline-offset:3px}.transport{border-top:1px solid var(--line);gap:10px}.transport button,.transport select,.panelhead button{font-size:12px}.transport #play{background:#36583c;color:white;min-width:68px;border-color:transparent}.transport input{min-width:34px;flex:1;accent-color:#567a48}.transport output{font:11px var(--mono);white-space:nowrap}.detail{max-height:680px;overflow:auto;overflow-wrap:anywhere}.detail h2{margin:5px 0 8px}.detail nav{display:flex;gap:4px;margin:12px 0;background:#f2f5ef;border-radius:7px;padding:3px}.detail nav button{border:0;background:transparent;flex:1;padding:5px 3px;font-size:12px}.detail nav button[aria-pressed=true]{background:white;box-shadow:0 1px 4px #324b2c19}.detail pre,.more pre,.diff{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.65 var(--mono);padding:10px;background:#f4f6f0;border-radius:6px;margin:5px 0 11px}.detail b{font-size:12px}.diff .add{background:#e0efda}.diff .remove{background:#f6e5df}.item{border-top:1px solid var(--line);padding-top:8px}.more{margin:16px 0 24px}.more summary,details summary{cursor:pointer}.more p{margin:10px 0}.more pre{max-height:360px;overflow:auto}.notice{font-size:12px;color:var(--muted);margin-top:10px}
+@media(min-width:1600px){.detail{max-height:760px}}@media(max-width:900px){.grid{grid-template-columns:1fr}.heading{align-items:flex-start;flex-direction:column}.detail{max-height:unset}.stats{margin-top:4px}.transport{flex-wrap:wrap}}@media(max-width:540px){.stats{gap:12px}.stat b{font-size:19px}.transport,.panelhead,.detail,.more{padding:12px}.transport input{order:4;flex-basis:100%}.panelhead h2{font-size:16px}}@media(prefers-reduced-motion:reduce){.particle{display:none}}
+
+.compare{margin-top:16px;scroll-margin:16px}.compare select{max-width:100%;font-size:13px}.compareBody{padding:14px 18px;min-width:0}.compare .caption{font-size:12px}.compareBody p{margin-bottom:7px}.compareBody details{margin:0}.changeStats{font-size:13px;color:#47604b}.filediff{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:12px 0}.filediff .range,.fold summary{padding:6px 12px;background:#eef3f5;font:12px/1.5 var(--mono);color:#486776}.fold summary{background:#f4f6f3;color:var(--muted);cursor:pointer}.evidence-summary{background:#f3f6ef;padding:10px 12px;margin:6px 0 8px;border-left:3px solid #a1b996}.evidence-summary p+p{margin-top:6px}#jumpDiff{display:inline-block;color:var(--green);margin-top:12px}.compare .panelhead label{font-size:12px}.compareBody>details{font-size:12px;color:var(--muted)}@media(max-width:600px){.compare .panelhead{flex-wrap:wrap}.compareBody{padding:10px}}
+.versionPickers{display:flex;flex-wrap:wrap;gap:8px 16px;max-width:100%}.versionPickers label{display:grid;gap:3px;min-width:0;max-width:100%}.versionPickers select{width:min(32ch,100%)}@media(max-width:600px){.versionPickers{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.versionPickers select{width:100%}}
+
+.compare .panelhead{align-items:flex-end;padding:20px 24px;background:#fafbf8}.compare .panelhead h2{font-size:22px;letter-spacing:-.035em}
+.compareBody{padding:16px 24px 24px}.versionPickers label{font-weight:600;color:#59675b}.versionPickers select{background:#fff;font-weight:400}
+.effects h3,.diffTitle{margin:0 0 10px;font-size:15px;letter-spacing:.02em}.diffTitle{border-top:1px solid var(--line);margin:22px 0 10px;padding-top:18px}
+.scores,.casegroups,.outputs,.filehead,.codepair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.scores{border:1px solid #cbd8c8;border-radius:9px;overflow:hidden}.scorebox{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:14px 19px;background:#f5f6f1}
+.scorebox+.scorebox{background:#eaf2e4;border-left:1px solid #cbd8c8}.scorebox small{width:100%;font:600 12px var(--mono);color:#4e6555}
+.scorebox strong{font:500 clamp(25px,3vw,40px)/1 Georgia,serif;font-variant-numeric:tabular-nums;color:#2b4633}.scorebox span{color:#5b6f60;font:12px var(--mono)}
+.effectDelta{margin:8px 0;color:#344e39;font-weight:600}.sampleTotals{font-size:12px;color:var(--muted);margin:12px 0 6px}
+.casegroups{gap:10px;align-items:start}.casegroup{border:1px solid #d4e0d1;border-radius:7px;overflow:hidden}.casegroup>summary{padding:9px 12px;background:#eef5ea;color:#355f3e}
+.casegroup.regressed{border-color:#e6d8d2}.casegroup.regressed>summary{background:#f8f0ec;color:#8b503e}
+.casegroup>summary b{float:right;font:600 13px/1.65 var(--mono)}.caseitem,.emptyCases{padding:7px 12px;font-size:13px}.caseitem+.caseitem{border-top:1px solid var(--line)}
+.caseitem summary{font:12px/1.65 var(--mono)}.outputs{gap:8px;margin-top:8px}.caseitem small{font-size:11px;color:var(--muted)}.caseitem pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 var(--mono);padding:6px 8px;margin:2px 0 6px;background:#f5f6f3;border-radius:4px}
+.filehead{background:#30493b;color:#f2f6ee}.filehead>div{padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}.filehead b,.filehead small{font:12px var(--mono);overflow-wrap:anywhere}.filehead small{color:#d0dfce}
+.codecell{min-width:0;display:grid;grid-template-columns:3ch 1ch minmax(0,1fr);align-content:start;gap:5px;padding:4px 9px;font:12px/1.65 var(--mono)}
+.codecell+.codecell,.filehead>div+div{border-left:1px solid #c7d5c6}.codecell code,.codecell summary{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere}
+.codecell .lineno,.codecell .mark{color:#6f8074;text-align:right;user-select:none}.codecell.add{background:#e6f3e4}.codecell.remove{background:#f8e7e2}.codecell.empty{background:repeating-linear-gradient(135deg,#f7f8f5,#f7f8f5 4px,#eff1ec 4px,#eff1ec 5px)}
+@media(max-width:750px){.casegroups{grid-template-columns:1fr}.compare .panelhead{flex-wrap:wrap}.compareBody,.compare .panelhead{padding:12px}.codecell{padding:3px;gap:2px;font-size:11px}.filehead>div,.scorebox{padding:9px}.scorebox{gap:6px}}
+
+/* Report navigation and reading surface */
+header{background:#213f32;border-color:#20392f;color:#f6f8ed}
+header strong{display:flex;align-items:center;gap:9px;font-size:20px}
+header .logomark{background:#f6f8ed;border-radius:6px}
+header nav{display:flex;gap:6px}header nav a{color:#ecf2e8;text-decoration:none;font-size:13px;padding:5px 10px;border-radius:5px}
+header nav a:hover,header nav a:focus-visible{background:#365642}.heading{padding:27px 0}.heading #kind{display:block;margin-bottom:5px;color:#516d58;font-size:12px;font-weight:600}
+.stats{padding:10px 16px;gap:22px;background:#edf2e8;border-radius:0 8px 8px 0}.panel{box-shadow:0 6px 22px #29402709}summary:focus-visible,.stream:focus-visible{outline:2px solid #567c5e;outline-offset:-2px}
+.casegroups:has(.casegroup[open]){grid-template-columns:1fr}
+.casegroup>summary{padding:12px 16px;font-weight:600}.caseitem{padding:0 14px}
+.caseitem>summary{padding:10px 3px;font-size:13px;color:#344d3b}
+.caseitem>summary b{font-weight:600}.casePreview{display:inline-block;vertical-align:bottom;margin-left:14px;max-width:min(68%,65ch);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#657369;font:13px/1.65 system-ui,sans-serif}
+.transcript{border:1px solid #dce4d8;border-radius:10px;overflow:hidden;margin-top:2px;background:#f8faf6}
+.transcriptHead{display:flex;align-items:baseline;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #e2e9df;background:#f0f4eb}
+.transcriptHead h4{font-size:14px;margin:0}.transcriptHead span{font:11px var(--mono);color:#586e5e}.transcript>p{padding:12px}
+.stream{max-height:clamp(260px,48vh,480px);overflow:auto;scrollbar-gutter:stable;list-style:none;display:flex;flex-direction:column;gap:10px;margin:0;padding:16px clamp(10px,2vw,26px)}
+.turn{max-width:min(80%,78ch);align-self:flex-start}.turn small{display:block;margin:0 3px 3px;font:600 11px/1.4 system-ui,sans-serif;color:#5c6f61}
+.turn p{margin:0;padding:8px 12px;white-space:pre-wrap;overflow-wrap:anywhere;color:#2e4436;background:#fff;border:1px solid #dce4d8;border-radius:3px 12px 12px;font:14px/1.55 system-ui,sans-serif}
+.turn.customer{align-self:flex-end}.turn.customer small{text-align:right}.turn.customer p{background:#e5efdc;border-color:#d2e1c8;border-radius:12px 3px 12px 12px}
+.turn.event{align-self:center;max-width:92%;text-align:center}.turn.event small{font:11px var(--mono);color:#5a6772}.turn.event p{background:#edf0ef;border:0;border-radius:5px;padding:3px 9px;font-size:12px;color:#485a56}
+.outputs{gap:12px;margin:12px 0 8px}.answerCard,.goldAnswer{min-width:0;border:1px solid #dce4d8;border-radius:8px;padding:9px 12px}.answerCard>small,.goldAnswer>small{font-weight:650;font-size:12px}
+.answerCard.correct{border-top:3px solid #79a276}.answerCard.incorrect{border-top:3px solid #bc8575}.answerCard.correct>small{color:#3e7144}.answerCard.incorrect>small{color:#8a4e40}
+.goldAnswer{margin-bottom:14px;background:#f5f4ed;border-color:#e4e1d3}.goldAnswer>small{color:#72663d}
+.caseitem .answerCard pre,.caseitem .goldAnswer pre{background:transparent;padding:4px 0 0;margin:0}
+@media(max-width:600px){.heading{padding:18px 0}.stats{gap:12px}.caseitem{padding:0 8px}.outputs{gap:6px}.answerCard,.goldAnswer{padding:7px}.casePreview{display:block;margin:3px 0 0 16px;max-width:calc(100% - 16px)}.turn{max-width:91%}header nav{gap:0}header nav a{padding:5px 7px}}
+.heading{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,26rem),1fr));gap:1.5rem;align-items:center}
+.heading h1{font-size:clamp(1.85rem,1.35rem + 2vw,3rem);overflow-wrap:anywhere}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,6rem),1fr));gap:.9rem;padding:1rem;border:1px solid #cfdac9;border-radius:.75rem;background:var(--paper)}
+.stat b{font-variant-numeric:tabular-nums}.stat span{margin-block-start:.3rem}
+#growth,.compare{container-type:inline-size}.layerNav{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,7.1rem),1fr));gap:1px;background:var(--line);border-block-end:1px solid var(--line)}
+.layerNav button{border:0;border-radius:0;display:grid;gap:.15rem;text-align:start;padding:.65rem .8rem;background:#f8faf5}
+.layerNav button:hover,.layerNav button[aria-pressed=true]{background:#e5eedf;box-shadow:inset 0 -3px #60815c}.layerNav small{font-size:.73rem}.layerNav b{font:500 1.25rem Georgia,serif;color:#324e39}
+.layerNav button:focus-visible{outline-offset:-3px}.stream{max-block-size:clamp(16rem,48dvh,30rem);overscroll-behavior:contain}
+@container (max-width:44rem){.versionPickers{inline-size:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.versionPickers select{inline-size:100%}.panelhead{flex-wrap:wrap}.layerNav{grid-template-columns:repeat(auto-fit,minmax(min(100%,5rem),1fr))}}
+.lockSummary{padding:12px 19px;background:#eff5ec;border-bottom:1px solid var(--line)}.lockSummary strong{display:block;color:#304f37}.lockSummary p{margin:.2rem 0 0;font-size:13px}.screen-score{font:11px system-ui;fill:#546851}
+.testSummary{background:#edf4f7}.testSummary strong{color:#275c70}.metric-label{font:12px system-ui;fill:#425448}.metric-value{font:600 15px var(--mono);fill:#284832}.test-metric{fill:#245d75}.test-band{fill:#e9f3f7}
+
+.evalSummary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,8rem),1fr));gap:7px;margin:10px 0}
+.evalCard{padding:10px 11px;border-radius:8px;background:#f0f5ed;color:#36543b;min-width:0}
+.evalCard.test{background:#eaf2f6;color:#24566b}.evalCard span,.evalCard small{display:block;color:inherit;font-size:11px}
+.evalCard strong{font:500 26px/1.4 Georgia,serif;font-variant-numeric:tabular-nums}.evalCard small{font-variant-numeric:tabular-nums}
+.roundTable{width:100%;border-collapse:collapse;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+.roundTable caption{text-align:left;font-size:13px;font-weight:650;padding:8px 0}
+.roundTable th,.roundTable td{padding:6px 3px;border-bottom:1px solid var(--line);vertical-align:middle}
+.roundTable th{font-size:12px;font-weight:500}.roundTable th:first-child{text-align:left}
+.roundTable td{font-weight:600}.roundTable td small{display:block;font:11px/1.4 var(--mono)}
+.evalRecords{margin-top:14px}.evalRecords summary{color:var(--muted)}
+.node .expandHint{font:14px system-ui;fill:#476b54}.node:hover .expandHint,.node:focus-visible .expandHint{fill:#153c24}
+#nodePeek{position:fixed;inset:auto;margin:0;width:min(340px,calc(100vw - 20px));max-height:min(75dvh,550px);overflow:auto;overscroll-behavior:contain;padding:14px;background:var(--paper);color:var(--ink);border:1px solid #bdcdb8;border-radius:12px;box-shadow:0 10px 42px #17342530}
+#nodePeek .peekHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}#nodePeek h3{margin:2px 0}#nodePeek button{padding:3px 8px}#nodePeek:not(:popover-open){display:none}
+@media(prefers-reduced-motion:no-preference){
+ #nodePeek{opacity:0;transform:translateY(6px) scale(.985);transition:opacity 160ms ease,transform 180ms ease,display 180ms allow-discrete,overlay 180ms allow-discrete}
+ #nodePeek:popover-open{opacity:1;transform:none}
+ @starting-style{#nodePeek:popover-open{opacity:0;transform:translateY(6px) scale(.985)}}
+ #runs:not([hidden]) .evalSummary{animation:eval-in 180ms ease-out}
+ @keyframes eval-in{from{opacity:.25;transform:translateY(4px)}}
+}
+.roundPairGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,21rem),1fr));gap:12px;margin-block:8px 18px}
+.roundPair{min-width:0;border:1px solid var(--line);border-radius:10px;padding:12px 15px}.roundPair h4{margin:0;font-size:15px}
+.roundPair .roundTable{margin-block:8px}.roundPair .roundTable tfoot{background:#edf4e9}.roundPair.test .roundTable tfoot{background:#eaf2f6}
+.roundPair .pairRule{font-size:12px;color:var(--muted)}.roundPair .pairLead{font-weight:650;margin:10px 0 2px;font-variant-numeric:tabular-nums}
+.treeTools{display:flex;align-items:center;justify-content:flex-end;gap:5px;padding:6px 12px;border-bottom:1px solid var(--line)}
+.treeTools button{padding:4px 9px;min-height:32px}.treeTools output{min-width:5ch;text-align:center;font:12px var(--mono)}.treeTools button:disabled{opacity:.45;cursor:default}
+.stage{height:min(var(--tree-height,32rem),clamp(13rem,57dvh,43rem));overflow-anchor:none;position:relative}
+.treeCanvas{width:max-content;min-width:100%;min-height:100%;display:grid;place-items:center}
+.stage.zoomed{cursor:grab}.stage.dragging{cursor:grabbing}.stage.dragging *{cursor:inherit}
+</style></head>
 <body>
-<header><b><img class="logomark" src="data:image/png;base64,REPORT_LOGO_BASE64" width="32" height="32" alt="">Prompt Tree</b><span class="badge" id="kind"></span></header>
+<header><div><strong><img class="logomark" src="data:image/png;base64,REPORT_LOGO_BASE64" width="32" height="32" alt="">Prompt Tree</strong><nav aria-label="{{报告导航}}"><a href="#growth">{{生长轨迹}}</a><a href="#comparison">{{版本对比}}</a></nav></div></header>
 <main>
-<p class="muted">评测驱动的 Prompt 探索 · 离线交付</p><h1 id="title"></h1><p id="objective"></p>
-<div class="notice" id="notice"></div>
-<section class="stats" aria-label="实验概览" id="stats"></section>
+<div class="heading"><div><small id="kind"></small><h1 id="title"></h1><p class="muted" id="objective"></p></div><section class="stats" aria-label="{{验证集概览}}" id="stats"></section></div>
 <div class="grid">
-<section class="panel"><h2>探索树</h2><div class="toolbar"><button id="play">播放生长</button><label>进度 <input id="timeline" type="range" min="0" step="1"></label><span id="position"></span></div><div style="overflow:auto"><svg id="tree" role="img" aria-label="从下方向上生长的 Prompt 探索树"></svg></div><p id="layerStates"></p><p class="count" id="counts"></p><details><summary>无变化、拒绝与复用记录</summary><pre id="attempts"></pre></details></section>
-<section class="panel detail" aria-live="polite"><h2 id="nodeTitle"></h2><p class="muted" id="nodeMeta"></p><h3>修改依据与假设</h3><div id="rationale"></div><h3>评测记录</h3><div id="runs"></div><details open><summary>相对父版本的差异</summary><div class="diff" id="diff"></div></details><details><summary>完整有效 Prompt</summary><pre id="prompt"></pre></details></section>
+<section class="panel" id="growth"><div class="panelhead"><div><h2>{{Prompt 生长轨迹}}</h2><small id="stageCaption"></small></div><button id="winnerPath" aria-pressed="false">{{只看选中路径}}</button></div>
+<div id="lockSummary" class="lockSummary" hidden></div>
+<div id="testSummary" class="lockSummary testSummary" hidden></div>
+<nav id="layerNav" class="layerNav" aria-label="{{每层单次初筛最高分，选择以定位节点}}"></nav>
+<div class="treeTools" role="group" aria-label="{{树视图缩放}}"><button id="zoomOut" aria-label="{{缩小树视图}}" aria-controls="tree">−</button><output id="zoomLevel" aria-label="{{当前缩放比例}}"></output><button id="zoomIn" aria-label="{{放大树视图}}" aria-controls="tree">＋</button><button id="zoomFit" aria-controls="tree" aria-pressed="true">{{适应视窗}}</button></div>
+<div class="stage" id="treeStage" tabindex="0" aria-label="{{可缩放的树视图}}" role="region"><div class="treeCanvas"><svg id="tree" role="group" aria-label="{{从顶部根节点向下生长的 Prompt 探索树}}"></svg></div></div>
+<div class="transport"><button id="play">{{播放生长}}</button><button id="restart">{{从头播放}}</button><input id="timeline" aria-label="{{生长进度}}" type="range" min="0" step="1"><output id="position" for="timeline"></output><select id="speed" aria-label="{{播放速度}}"><option value="0.65">{{慢速}}</option><option value="1" selected>1×</option><option value="2">2×</option></select></div></section>
+<section class="panel detail"><small id="nodeMeta"></small><h2 id="nodeTitle"></h2><nav aria-label="{{节点详情}}"><button data-tab="rationale">{{依据}}</button><button data-tab="runs">{{评测}}</button><button data-tab="prompt">Prompt</button></nav><div id="rationale"></div><div id="runs" hidden></div><pre id="prompt" hidden></pre><a id="jumpDiff" href="#comparison">{{查看 Prompt 改动 ↓}}</a></section>
 </div>
-<section class="panel" style="margin-top:18px"><h2>实验边界与可复现信息</h2><ul id="limitations"></ul><pre id="metadata"></pre></section>
+<section class="panel compare" id="comparison" aria-labelledby="comparisonTitle">
+<div class="panelhead"><div><h2 id="comparisonTitle">{{Prompt 对比}}</h2><p id="comparedPair" class="caption"></p></div>
+<div class="versionPickers"><label>{{左版 · 对照}}<select id="compareBase"><option value="">{{跟随右版的父节点}}</option></select></label><label>{{右版 · 查看改动}}<select id="compareNode"></select></label></div></div>
+<div class="compareBody" id="compareBody"></div></section>
+<details class="panel more" id="records"><summary>{{实验记录与来源}}</summary><p class="notice" id="notice"></p><div id="tierDecision"></div><p id="layerStates"></p><h3>{{评测提交概况}}</h3><p id="counts"></p><p id="versionCounts" class="muted"></p><h3>{{跳过、拒绝与复用记录}}</h3><div id="attempts"></div><h3>{{复现信息}}</h3><ul id="limitations"></ul><pre id="metadata"></pre></details>
+<section popover="auto" id="nodePeek" role="dialog" aria-labelledby="peekTitle">
+<div class="peekHead"><div><small id="peekId"></small><h3 id="peekTitle"></h3></div><button id="closePeek" aria-label="{{收起节点评测}}">{{收起}}</button></div>
+<div id="peekScores"></div></section>
 </main>
-<footer>依据冻结合同与实验记录生成。独立测试：not_tested。应用 Prompt 前核对业务规则、回归与运行环境。</footer>
 <script type="application/json" id="report-data">REPORT_DATA</script>
 <script id="report-ui">
 'use strict';
+/* REPORT_DIFF_FUNCTIONS */
 const data=JSON.parse(document.getElementById('report-data').textContent),manifest=data.manifest,nodes=data.nodes;
 const $=id=>document.getElementById(id);
 const el=(tag,text,className)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;};
 const svg=(tag,attrs,text)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value]of Object.entries(attrs))n.setAttribute(key,value);if(text!==undefined)n.textContent=text;return n;};
+const message=(pattern,...values)=>pattern.replace(/\{(\d+)\}/g,(_,i)=>String(values[i]));
 const pct=n=>(n*100).toFixed(2)+'%';
-let reveal=nodes.length-1,selected=(nodes.find(n=>n.selected)||nodes.at(-1)).event_id,timer=null;
-$('kind').textContent=manifest.execution_kind==='mock'?'模拟 Probe':'Probe · 验证集探索';
+const winner=nodes.find(n=>n.selected)||nodes.find(n=>n.version_id===manifest.version_id)||nodes[0];
+const retest=manifest.validation_retest;
+const byVersion=new Map((retest?.ranking||[]).map(row=>[row.version_id,row]));
+const testPanel=manifest.independent_test;
+const testByVersion=new Map((testPanel?.rows||[]).map(row=>[row.version_id,row]));
+const validationPurpose='{{锁版前，每个候选版本反复回答同一批验证题。看各轮分数能了解模型输出的波动，再用多轮均值和预设门槛决定选哪一版。}}';
+const testPurpose='{{锁版后，用另一批在改 Prompt 和选版时都留出的题，检验原先的优势在新样本上能否保持。即使排名变化，也只记录复验结论，本次锁版决定仍以验证结果为准。}}';
+const captions=REPORT_CAPTIONS;
+const byId=new Map(nodes.map(n=>[n.event_id,n]));
+const lineage=id=>{const ids=new Set();while(byId.has(id)&&!ids.has(id)){ids.add(id);id=byId.get(id).parent_event_id;}return ids;};
+const winnerLine=lineage(winner.event_id),motion=matchMedia('(prefers-reduced-motion: reduce)');
+let sequence=nodes,reveal=nodes.length-1,selected=winner.event_id,timer=null;
+$('kind').textContent=manifest.execution_kind==='mock'?'{{模拟 Probe}}':'{{Probe · 验证集探索}}';
 $('title').textContent=manifest.project_id;
-$('objective').textContent=manifest.objective;
-$('notice').textContent=manifest.execution_kind==='mock'?'数据与模型响应为模拟。分数变化用于检验工具链，业务效果待真实数据和模型验证。':'本次结论来自验证集探索；独立测试尚未运行，正式验收未判定。';
-for(const [label,value]of [['基准 · '+manifest.comparison.metric,pct(manifest.comparison.baseline.value)],['候选 · 验证集',pct(manifest.comparison.candidate.value)],['差异 · 百分点',(manifest.comparison.delta*100).toFixed(2)],['真实目标模型调用',String(manifest.usage.target_calls)]]){
+$('objective').textContent=captions.objective||manifest.objective;
+$('notice').textContent=manifest.execution_kind==='mock'?'{{数据与模型响应为模拟。分数变化用于检验工具链，业务效果待真实数据和模型验证。}}':'{{此树记录 Probe 验证集选版结果。独立测试由项目单独记录。}}';
+const sourceCalls=manifest.execution_profile?.mode==='replay'?manifest.execution_profile.provider_calls:null;
+for(const [label,value]of [['{{基准 · }}'+manifest.comparison.metric,pct(manifest.comparison.baseline.value)],[manifest.validation_retest?'{{入选版本 · 初筛}}':'{{入选版本 · 验证集}}',pct(manifest.comparison.candidate.value)],[manifest.validation_retest?'{{初筛相对基准 · 百分点}}':'{{差异 · 百分点}}',(manifest.comparison.delta*100).toFixed(2)],[Number.isFinite(sourceCalls)?'{{原始实测模型调用}}':'{{真实目标模型调用}}',String(Number.isFinite(sourceCalls)?sourceCalls:manifest.usage.target_calls)]]){
  const box=el('div',undefined,'stat');box.append(el('b',value),el('span',label));$('stats').append(box);
 }
-$('counts').textContent='尝试 '+manifest.counts.attempts+' · 派生 '+manifest.counts.derivations+' · 唯一版本 '+manifest.counts.versions+' · 实际评测任务 '+manifest.counts.evaluations+' · 缓存复用 '+manifest.counts.cache_reuses+' · 模拟调用 '+manifest.usage.simulated_calls;
-$('attempts').textContent=JSON.stringify(data.attempts,null,2);
+if(manifest.validation_retest){
+ const r=manifest.validation_retest, box=el('div',undefined,'stat');
+ box.append(el('b',pct(r.decision?.selected_mean ?? r.ranking[0].mean)),el('span',r.selected+' · '+r.rounds+'{{ 轮复测均值}}'));
+ $('stats').append(box);
+ const summary=$('lockSummary'), locked=byVersion.get(manifest.version_id);
+ summary.hidden=false;
+ summary.append(el('strong',message('{{验证复测 · 为什么选 {0}？}}',r.selected)),el('p',validationPurpose));
+ const screened=r.ranking.reduce((a,b)=>b.screening.value>a.screening.value?b:a);
+ const margin=r.decision?.policy.min_gain_pp;
+ const other=r.ranking.find(row=>row!==locked);
+ let explanation=message('{{本次复测覆盖 {0} 个版本，{1} 的 {2} 轮验证均值为 {3}。}}',r.ranking.length,r.selected,r.rounds,pct(locked.mean));
+ if(screened.screening.value>locked.screening.value){
+  explanation+='{{单次初筛 }}'+screened.id+'{{（}}'+pct(screened.screening.value)+'{{）领先 }}'+locked.id+'{{（}}'+pct(locked.screening.value)+ '{{）。}}';
+ }
+ if(other && r.decision?.top_tier.length===1){
+  explanation+=message('{{{0} 轮后，{1} 比第二名 {2}（{3}）高 {4} 个百分点，达到 {5} 个百分点的锁版门槛。}}',r.rounds,locked.id,other.id,pct(other.mean),((locked.mean-other.mean)*100).toFixed(2),margin);
+ }else if(r.decision && r.decision.top_tier.length>1){
+  const d=r.decision;
+  explanation+='{{以 }}'+d.mean_leader+'{{ 的均值为参照，}}'+d.top_tier.join('{{、}}')+'{{ 同档（门槛 }}'+margin+'{{ 个百分点）。}}';
+  if(d.policy.false_rejection)explanation+='{{按误拒率筛选后保留 }}'+d.length_finalists.join('{{、}}')+'{{。}}';
+  explanation+='{{选取最短 Prompt（}}'+locked.prompt_chars+'{{ 字符），等长按冻结顺序。}}';
+ }else if(!r.decision){explanation+='{{按验证复测均值选版。}}';}
+ summary.append(el('p',explanation));
+ if(r.decision){
+  const d=r.decision, section=$('tierDecision'), list=el('ul');
+  section.append(el('h3','{{锁版取舍}}'),el('p','{{均值领先版 }}'+d.mean_leader+'{{，同档门槛 }}'+d.policy.min_gain_pp+'{{ 个百分点。}}'+
+   (d.policy.false_rejection?'{{误拒率门槛 }}'+d.policy.false_rejection.min_gain_pp+'{{ 个百分点。}}':'')+'{{进入长度比较的版本为 }}'+d.length_finalists.join('{{、}}')+'{{。}}'));
+  for(const n of r.ranking.filter(n=>d.top_tier.includes(n.id))){
+   list.append(el('li',n.id+'{{ · 复测均值 }}'+pct(n.mean)+(n.false_rejection?'{{ · 误拒 }}'+n.false_rejection.rejected+'/'+n.false_rejection.supported+'{{（}}'+pct(n.false_rejection.rate)+'{{）}}':'')+' · Prompt '+n.prompt_chars+'{{ 字符}}'));
+  }
+  section.append(list);
+ }
+ $('notice').textContent+='{{ 锁版}}'+(r.decision?'{{按同档规则}}':'{{按新增验证轮次的均值}}')+'{{选出 }}'+r.selected+'{{，复测回执共记录 }}'+r.target_calls+'{{ 次请求。}}';
+}
+if(testPanel){
+ const box=$('testSummary'),c=testPanel.comparison;
+ box.hidden=false;
+ box.append(el('strong','{{独立测试 · 换一批题后，优势还能保持吗？}}'),el('p',testPurpose));
+ let text=testPanel.rows.length+'{{ 个版本，每版 }}'+testPanel.rounds+'{{ 轮，每轮 }}'+testPanel.cases+'{{ 条。}}';
+ if(c){
+  const label=v=>{const n=nodes.find(n=>n.version_id===v);return n?.node_id||n?.event_id||v;};
+  const score=v=>label(v)+'{{（}}'+pct(testByVersion.get(v).mean)+'{{）}}';
+  text+=score(c.locked)+'{{ 与 }}'+score(c.rival)+'{{ 相差 }}'+Math.abs(c.gap_pp).toFixed(2)+'{{ 个百分点。}}';
+  if(c.same_tier!==undefined)text+='{{沿用 }}'+c.margin_pp+'{{ 个百分点门槛，两版}}'+(c.same_tier?'{{测试同档}}':'{{测试分属两档}}')+'{{。}}';
+ }
+ box.append(el('p',text));
+ $('notice').textContent='{{锁版依据来自验证集。独立测试成绩由项目在锁版后提供。}}';
+}
+const counts=manifest.counts;
+$('counts').textContent='{{共提交评测 }}'+counts.attempts+'{{ 次，实际创建 }}'+counts.evaluations+'{{ 个评测任务。同一版本分别提交搜索集和验证集评测，计为两次提交。}}';
+$('versionCounts').textContent='{{不同 Prompt 版本 }}'+counts.versions+'{{ 个 · 版本来源记录 }}'+counts.derivations+'{{ 条（含基线） · 复用已有评测 }}'+counts.cache_reuses+'{{ 次 · 模拟模型调用 }}'+manifest.usage.simulated_calls+'{{ 次}}';
+if(data.attempts.length){
+ const descriptions={NO_CHANGE:'{{Prompt 内容没有变化，已跳过评测}}',REJECTED:'{{评测提交被拒绝}}',REUSED:'{{已复用相同版本和数据集的评测结果}}'};
+ const list=el('ul');
+ for(const event of data.attempts){
+  const item=el('li'),details=el('details');
+  details.append(el('summary',event.request_id+' · '+descriptions[event.type]),el('pre',JSON.stringify(event,null,2)));
+  item.append(details);list.append(item);
+ }
+ $('attempts').append(list);
+}else{
+ $('attempts').append(el('p','{{本轮没有因 Prompt 内容未变而跳过的提交，也没有被拒绝或复用已有结果的提交。}}'));
+}
 for(const text of manifest.limitations)$('limitations').append(el('li',text));
 $('metadata').textContent=JSON.stringify({experiment_id:manifest.experiment_id,contract_hash:manifest.contract_hash,created_at:manifest.created_at,stop_reason:manifest.stop_reason,test_status:manifest.test_status,release_decision:manifest.release_decision,budget:manifest.limits,usage:manifest.usage},null,2);
 $('timeline').max=String(nodes.length-1);$('timeline').value=String(reveal);
-const states={queued:'排队',running:'运行中',partial:'部分完成',interrupted:'已中断',completed:'已评测',blocked:'阻塞',failed:'执行失败',rejected:'拒绝',unknown:'待对账',no_change:'无变化',expanded:'已展开',stopped:'停止展开',depth_limit:'达到层数',awaiting_review:'待分析',needs_attention:'待处理'};
+const states={queued:'{{排队}}',running:'{{运行中}}',partial:'{{部分完成}}',interrupted:'{{已中断}}',completed:'{{已评测}}',blocked:'{{阻塞}}',failed:'{{执行失败}}',rejected:'{{拒绝}}',unknown:'{{待对账}}',no_change:'{{无变化}}',deferred:'{{暂缓}}',expanded:'{{已展开}}',stopped:'{{停止展开}}',depth_limit:'{{达到层数}}',awaiting_review:'{{待分析}}',needs_attention:'{{待处理}}'};
 const stateName=s=>states[s]||s;
-$('layerStates').textContent=(data.layers||[]).map(l=>'第 '+l.level+' 层 · '+stateName(l.status)+' · '+l.count+' 个节点').join('　');
-const depth=id=>{const n=nodes.find(n=>n.event_id===id);return n.parent_event_id?depth(n.parent_event_id)+1:0;};
+$('layerStates').textContent=(data.layers||[]).map(l=>message('{{第 {0} 轮 · {1} · {2} 个节点}}',l.level,stateName(l.status),l.count)).join('{{　}}');
+const title=n=>captions.nodes?.[n.node_id]||(n.kind==='root'?'{{原始 Prompt}}':n.operator||n.hypothesis||'{{候选}}');
+function plainValue(value){
+ let parsed=value;
+ if(typeof value==='string'){try{parsed=JSON.parse(value);}catch{}}
+ if(parsed && typeof parsed.action==='string' && Array.isArray(parsed.values)){
+  return parsed.action+(parsed.values.length?'{{（}}'+parsed.values.join('{{、}}')+'{{）}}':'{{（无参数）}}');
+ }
+ const text=typeof parsed==='string'?parsed:JSON.stringify(parsed);
+ return text.length>120?text.slice(0,119)+'…':text;
+}
+function numberedDiff(lines){
+ let old=0,current=0;
+ return lines.map(l=>({...l,old:l.kind==='add'?null:++old,current:l.kind==='remove'?null:++current}));
+}
+function codeCell(line,side){
+ const cell=el('div',undefined,'codecell '+(line?.kind||'empty'));
+ if(!line)return cell;
+ const mark=line.kind==='add'?'+':line.kind==='remove'?'−':'';
+ cell.append(el('span',line[side],'lineno'),el('span',mark,'mark'));
+ if(line.kind==='same' && line.text.length>260){
+  const fold=el('details');
+  fold.append(el('summary',line.text.slice(0,90)+'{{ … 展开整行}}'),el('code',line.text));
+  cell.append(fold);
+ }else cell.append(el('code',line.text||'↵'));
+ return cell;
+}
+function codePair(left,right){
+ const row=el('div',undefined,'codepair');
+ row.append(codeCell(left,'old'),codeCell(right,'current'));return row;
+}
+function answerText(value){
+ if(value===undefined)return '{{未记录}}';
+ if(typeof value==='string'){try{value=JSON.parse(value);}catch{return value;}}
+ return typeof value==='string'?value:JSON.stringify(value,null,2);
+}
+function transcript(history){
+ const box=el('section',undefined,'transcript');
+ const heading=el('div',undefined,'transcriptHead');heading.append(el('h4','{{原始对话}}'));
+ if(Array.isArray(history))heading.append(el('span',history.length+'{{ 条记录}}'));
+ box.append(heading);
+ if(!history?.length){
+  box.append(el('p',history?'{{该样本的对话历史为空。}}':'{{此样本未附原始对话。}}'));return box;
+ }
+ const stream=el('ol',undefined,'stream');
+ stream.tabIndex=0;stream.setAttribute('aria-label','{{按时间顺序排列的原始对话}}');
+ for(const t of history){
+  const customer=t.role==='customer'||t.role==='user',agent=t.role==='agent'||t.role==='assistant';
+  const role=customer?'{{用户}}':agent?'{{客服}}':t.role==='action'?'{{系统动作}}':t.role;
+  const turn=el('li',undefined,'turn '+(customer?'customer':agent?'agent':'event'));
+  turn.append(el('small',role+(t.action?' · '+t.action:'')),el('p',t.text));stream.append(turn);
+ }
+ box.append(stream);return box;
+}
+function caseGroup(title,pairs,kind){
+ const group=el('details',undefined,'casegroup '+kind);
+ const sum=el('summary');sum.append(el('span',title),el('b',pairs.length+'{{ 条}}'));
+ group.append(sum);
+ if(!pairs.length){group.append(el('p','{{此组没有样本。}}','emptyCases'));return group;}
+ for(const [left,right] of pairs){
+  const item=el('details',undefined,'caseitem');
+  const history=data.validation_histories?.[left.case_id];
+  const toggle=el('summary');toggle.append(el('b','{{样本 }}'+left.case_id));
+  const request=history?.find(t=>(t.role==='customer'||t.role==='user')&&t.text.trim());
+  if(request)toggle.append(el('span',request.text,'casePreview'));
+  item.append(toggle,transcript(history));
+  const outputs=el('div',undefined,'outputs');
+  for(const [side,c] of [['{{左版}}',left],['{{右版}}',right]]){
+   const cell=el('div',undefined,'answerCard '+(c.failed?'incorrect':'correct'));cell.append(el('small',side+'{{输出 · }}'+(c.failed?'{{错误}}':'{{正确}}')),el('pre',answerText(c.prediction)));outputs.append(cell);
+  }
+  const gold=el('div',undefined,'goldAnswer');gold.append(el('small','{{金标准}}'),el('pre',answerText(right.expected??left.expected)));
+  item.append(outputs,gold);
+  group.append(item);
+ }
+ return group;
+}
+function validationRun(node){
+ return node.runs.find(r=>r.kind!=='original'&&r.split==='validation'&&r.status==='succeeded');
+}
+function renderEffects(panel,base,node){
+ const section=el('section',undefined,'effects');
+ const metric=manifest.comparison.metric;
+ const label=metric==='joint'?'{{整题准确率}}':metric;
+ section.append(el('h3',(retest?'{{单次初筛验证集 · }}':'{{验证集 · }}')+label));
+ const scores=el('div',undefined,'scores'),runs=[validationRun(base),validationRun(node)];
+ const metrics=runs.map(r=>r?.metrics?.[metric]);
+ for(const [i,n] of [base,node].entries()){
+  const score=el('div',undefined,'scorebox'),m=metrics[i];
+  score.append(el('small',(i?'{{右版}}':'{{左版}}')+'{{　}}'+(n.node_id||n.event_id)),el('strong',m?pct(m.value):'—'));
+  if(m)score.append(el('span',m.numerator+' / '+m.denominator));
+  scores.append(score);
+ }
+ section.append(scores);
+ if(metrics.every(Boolean)){
+  const delta=Math.round((metrics[1].value-metrics[0].value)*10000)/100;
+  section.append(el('p','{{右版相对左版　}}'+(delta>0?'+':'')+delta+'{{ 个百分点}}','effectDelta'));
+ }
+ const [left,right]=runs.map(r=>data.validation_cases?.[r?.run_id]);
+ if(left && right){
+  const lookup=new Map(right.map(c=>[c.case_id,c]));
+  if(left.length===right.length && left.every(c=>lookup.has(c.case_id))){
+   const fixed=[],regressed=[];let bothCorrect=0,bothWrong=0;
+   for(const a of left){
+    const b=lookup.get(a.case_id);
+    if(a.failed!==b.failed)(a.failed?fixed:regressed).push([a,b]);
+    else if(a.failed)bothWrong++;else bothCorrect++;
+   }
+   section.append(el('p','{{配对 }}'+left.length+'{{ 条验证样本 · 两版都对 }}'+bothCorrect+'{{ 条 · 两版都错 }}'+bothWrong+'{{ 条}}','sampleTotals'));
+   const groups=el('div',undefined,'casegroups');
+   groups.append(caseGroup('{{改对 · 错 → 对}}',fixed,'fixed'),caseGroup('{{改错 · 对 → 错}}',regressed,'regressed'));
+   section.append(groups);
+  }else section.append(el('p','{{两版的验证样本 ID 集合不同，无法逐条对照。}}','sampleTotals'));
+ }else section.append(el('p','{{当前版本组合缺少可配对的验证集逐题记录。}}','sampleTotals'));
+ panel.append(section);
+}
+function appendRoundScore(cell,score){
+ if(!score){cell.textContent='—';return;}
+ cell.append(el('span',pct(score.numerator/score.denominator)),el('small',score.numerator+' / '+score.denominator));
+}
+function renderRoundComparison(panel,left,right){
+ if(!retest&&!testPanel)return;
+ const grid=el('div',undefined,'roundPairGrid'), margin=retest?.decision?.policy.min_gain_pp;
+ const stages=[
+  {name:'{{验证复测}}',purpose:validationPurpose,records:byVersion},
+  {name:'{{独立测试}}',purpose:testPurpose,records:testByVersion,theme:'test'}
+ ];
+ panel.append(el('h3','{{多轮成绩对比}}'),grid);
+ for(const stage of stages){
+  const rows=[left,right].map(n=>stage.records.get(n.version_id));
+  const card=el('section',undefined,'roundPair '+(stage.theme||''));
+  card.append(el('h4',stage.name),el('p',stage.purpose,'pairRule'));grid.append(card);
+  if(!rows.some(Boolean)){card.append(el('p','{{两版均无该阶段成绩。}}','pairRule'));continue;}
+  const table=el('table',undefined,'roundTable');
+  table.setAttribute('aria-label',stage.name+'{{逐轮对比}}');
+  const head=table.createTHead().insertRow();
+  for(const label of ['{{轮次}}','{{左版 · }}'+(left.node_id||left.event_id),'{{右版 · }}'+(right.node_id||right.event_id)]){
+   const th=el('th',label);th.scope='col';head.append(th);
+  }
+  const body=table.createTBody(),rounds=Math.max(...rows.map(r=>r?.scores.length||0));
+  for(let i=0;i<rounds;i++){
+   const tr=body.insertRow(),th=el('th',message('{{第 {0} 轮}}',i+1));th.scope='row';tr.append(th);
+   for(const row of rows)appendRoundScore(tr.insertCell(),row?.scores[i]);
+  }
+  const foot=table.createTFoot().insertRow(),label=el('th','{{轮均值}}');label.scope='row';foot.append(label);
+  for(const row of rows)foot.insertCell().textContent=row?pct(row.mean):'—';
+  card.append(table);
+  if(!rows.every(Boolean)){card.append(el('p',(rows[0]?'{{右版}}':'{{左版}}')+'{{缺少该阶段的回执，暂无法比较均值。}}','pairRule'));continue;}
+  const gap=rows[1].mean-rows[0].mean;
+  const signed=(gap>0?'+':'')+(gap*100).toFixed(2);
+  card.append(el('p','{{右版 − 左版　}}'+signed+'{{ 个百分点}}','pairLead'));
+  const rule=Number.isFinite(margin)
+   ? '{{两版}}'+(inBand(Math.abs(gap),margin)?'{{同档}}':'{{分属两档}}')+'{{ · 按 }}'+margin+'{{ 个百分点门槛比较本对均值}}'
+   : '{{本次未设同档门槛。}}';
+  card.append(el('p',rule,'pairRule'));
+ }
+}
+function renderComparison(node){
+ const panel=$('compareBody');panel.replaceChildren();
+ const base=byId.get($('compareBase').value||node.parent_event_id);
+ const name=n=>n.node_id||n.event_id;
+ const direct=base && base.event_id===node.parent_event_id;
+ $('comparedPair').textContent=base?name(base)+' → '+name(node)+(direct?'{{ · 父子版本}}':''):name(node);
+ if(!base||!node.version_id||!base.version_id){
+  panel.append(el('p',base?'{{所选节点缺少 Prompt 快照。}}':'{{这是原始 Prompt。选择一个左版即可对比。}}'));return;
+ }
+ renderRoundComparison(panel,base,node);
+ renderEffects(panel,base,node);
+ panel.append(el('h3','{{Prompt 改动}}','diffTitle'));
+ if(base.prompt===node.prompt){
+  panel.append(el('p','{{两个版本的 Prompt 内容相同。}}'));return;
+ }
+ const lines=numberedDiff(diff(base.prompt,node.prompt)),changed=lines.flatMap((l,i)=>l.kind==='same'?[]:[i]);
+ const root=nodes.find(n=>n.kind==='root')||nodes[0];
+ const signed=x=>x>0?'+'+x:String(x);
+ const newLength=Array.from(node.prompt).length,oldLength=Array.from(base.prompt).length;
+ const additions=lines.filter(l=>l.kind==='add').length;
+ panel.append(el('p','{{新增 }}'+additions+'{{ 行 · 删除 }}'+(changed.length-additions)+'{{ 行　｜　净增减 }}'+signed(newLength-oldLength)+'{{ 字符　｜　右版相对根节点净增减 }}'+signed(newLength-Array.from(root.prompt).length)+'{{ 字符}}','changeStats'));
+ if(direct){
+  const size=node.edit_size;
+  const percent=v=>v>0 && v<.0001?'<0.01%':Number((v*100).toFixed(2))+'%';
+  const fraction=size.ratio===null?'{{父版为空}}':percent(size.ratio);
+  const band=size.ratio===null?'':size.ratio>.1?'{{ · 超过 10% 建议范围}}':size.ratio>.05?'{{ · 位于 5%–10% 复核区间}}':'{{ · 5% 目标以内}}';
+  panel.append(el('p','{{单步改动 }}'+fraction+band,'changeStats'));
+  const info=el('details');info.append(el('summary','{{查看计算口径}}'),el('p','{{父版 }}'+size.parent_length+'{{ 字符，本版 }}'+size.length+'{{ 字符。去掉相同前后缀后，改动区段由 }}'+size.removed+'{{ 字符变为 }}'+size.added+'{{ 字符。两者取较大值除以父版长度；字符包含角色标记与换行。}}'));
+  panel.append(info);
+ }
+ const blocks=[];
+ for(const i of changed){
+  const lo=Math.max(0,i-2),hi=Math.min(lines.length-1,i+2);
+  if(blocks.length && lo<=blocks.at(-1).hi+1)blocks.at(-1).hi=hi;
+  else blocks.push({lo,hi});
+ }
+ const view=el('div',undefined,'filediff');
+ const oldName=manifest.baseline_source.prompt_entry.file;
+ const fileHead=el('div',undefined,'filehead');
+ for(const [label,n] of [['{{左版}}',base],['{{右版}}',node]]){
+  const head=el('div');head.append(el('b',label+' · '+name(n)),el('small',oldName));fileHead.append(head);
+ }
+ view.append(fileHead);
+ function foldLines(start,end){
+  if(start>=end)return;
+  const fold=el('details',undefined,'fold');fold.append(el('summary','{{展开 }}'+(end-start)+'{{ 行未改内容}}'));
+  fold.addEventListener('toggle',()=>{if(fold.open && fold.children.length===1)for(const l of lines.slice(start,end))fold.append(codePair(l,l));});
+  view.append(fold);
+ }
+ let at=0;
+ for(const {lo,hi} of blocks){
+  foldLines(at,lo);
+  const chunk=lines.slice(lo,hi+1);
+  const range=(a,b)=>a===b?String(a):a+'–'+b;
+  for(let i=0;i<chunk.length;){
+   if(chunk[i].kind==='same'){const l=chunk[i++];view.append(codePair(l,l));continue;}
+   const start=i;
+   while(i<chunk.length && chunk[i].kind!=='same')i++;
+   const edits=chunk.slice(start,i),fresh=edits.filter(l=>l.kind==='add'),gone=edits.filter(l=>l.kind==='remove');
+   const labels=[];
+   if(gone.length)labels.push('{{左版第 }}'+range(gone[0].old,gone.at(-1).old)+'{{ 行删除}}');
+   else{
+    const before=lines[lo+start-1],after=lines[lo+i];
+    labels.push(before?'{{插在左版第 }}'+before.old+'{{ 行之后}}'+(after?'{{、第 }}'+after.old+'{{ 行之前}}':'{{（末尾）}}'):after?'{{插在左版首行之前}}':'{{从空白 Prompt 开始}}');
+   }
+   if(fresh.length)labels.push('{{右版第 }}'+range(fresh[0].current,fresh.at(-1).current)+'{{ 行新增}}');
+   view.append(el('div',labels.join(' · '),'range'));
+   for(let j=0;j<Math.max(gone.length,fresh.length);j++)view.append(codePair(gone[j],fresh[j]));
+  }
+  at=hi+1;
+ }
+ foldLines(at,lines.length);panel.append(view);
+}
+
+function scoreView(n){
+ const box=el('div'), metric=manifest.comparison.metric;
+ const groups=[
+  {label:'{{验证复测}}',row:byVersion.get(n.version_id)},
+  {label:'{{独立测试}}',row:testByVersion.get(n.version_id),theme:'test'}
+ ].filter(g=>g.row?.scores?.length);
+ const search=n.runs.find(r=>r.split==='search'&&r.status==='succeeded'&&r.kind!=='original')?.metrics?.[metric];
+ if(search)box.append(el('p','{{探索集　}}'+pct(search.value)+'　·　'+search.numerator+' / '+search.denominator,'caption'));
+ const screen=validationRun(n)?.metrics?.[metric];
+ if(screen)box.append(el('p','{{验证初筛　}}'+pct(screen.value)+'　·　'+screen.numerator+' / '+screen.denominator,'caption'));
+ if(!groups.length){
+  box.append(el('p','{{本节点尚无多轮成绩。}}','caption'));
+  return box;
+ }
+ const summary=el('div',undefined,'evalSummary');
+ for(const {label,row,theme} of groups){
+  const values=row.scores.map(s=>s.numerator/s.denominator);
+  const card=el('div',undefined,'evalCard'+(theme?' '+theme:''));
+  card.append(el('span',label+' · '+values.length+'{{ 轮均值}}'),el('strong',pct(row.mean)),
+   el('small','{{最低 }}'+pct(Math.min(...values))),el('small','{{最高 }}'+pct(Math.max(...values))));
+  summary.append(card);
+ }
+ const table=el('table',undefined,'roundTable'),head=table.createTHead().insertRow();
+ table.createCaption().textContent='{{逐轮成绩 · }}'+metric;
+ for(const label of ['{{轮次}}',...groups.map(g=>g.label)]){
+  const th=el('th',label);th.scope='col';head.append(th);
+ }
+ const body=table.createTBody();
+ for(let i=0;i<Math.max(...groups.map(g=>g.row.scores.length));i++){
+  const tr=body.insertRow(),label=el('th',message('{{第 {0} 轮}}',i+1));label.scope='row';tr.append(label);
+  for(const {row} of groups){
+   appendRoundScore(tr.insertCell(),row.scores[i]);
+  }
+ }
+ box.append(summary,table);
+ return box;
+}
+
+const peek=$('nodePeek');
+let peekAnchor=null;
+function positionPeek(){
+ if(!peekAnchor||!peek.matches(':popover-open'))return;
+ const r=peekAnchor.getBoundingClientRect(),w=peek.offsetWidth,h=peek.offsetHeight,gap=8;
+ const right=r.right+gap+w<=innerWidth, left=r.left-gap-w>=0;
+ const x=right?r.right+gap:left?r.left-gap-w:(innerWidth-w)/2;
+ const y=right||left?r.top:r.bottom+gap+h<=innerHeight?r.bottom+gap:r.top-h-gap;
+ peek.style.left=Math.max(gap,Math.min(x,innerWidth-w-gap))+'px';
+ peek.style.top=Math.max(gap,Math.min(y,innerHeight-h-gap))+'px';
+}
+function closePeek(){
+ if(peekAnchor){peekAnchor.setAttribute('aria-expanded','false');peekAnchor=null;}
+ if(peek.hidePopover)peek.hidePopover();
+}
+function openPeek(n,anchor){
+ if(!peek.showPopover){$('runs').scrollIntoView({block:'nearest'});return;}
+ peekAnchor=anchor;
+ $('peekId').textContent=n.node_id||n.event_id;$('peekTitle').textContent=title(n);
+ $('peekScores').replaceChildren(scoreView(n));
+ peek.showPopover();anchor.setAttribute('aria-expanded','true');positionPeek();
+ $('closePeek').focus({preventScroll:true});
+}
+peek.addEventListener('beforetoggle',e=>{
+ if(e.newState==='closed'&&peekAnchor){peekAnchor.setAttribute('aria-expanded','false');peekAnchor=null;}
+});
+function dismissPeek(){const anchor=peekAnchor;closePeek();anchor?.focus({preventScroll:true});}
+$('closePeek').onclick=dismissPeek;
+peek.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();dismissPeek();}});
+window.addEventListener('resize',positionPeek);
+window.addEventListener('scroll',positionPeek,true);
 function show(id){
- selected=id;const n=nodes.find(n=>n.event_id===id);
- $('nodeTitle').textContent=n.event_id+' · '+(n.kind==='root'?'基准导入':n.kind==='reference'?'内容引用':'候选');
- $('nodeMeta').textContent='父节点 '+(n.parent_event_id||'—')+' · '+n.version_id.slice(0,18);
+ closePeek();
+ selected=id;const n=byId.get(id);
+ $('nodeTitle').textContent=title(n);
+ $('nodeMeta').textContent=[n.node_id||n.event_id,n.round?message('{{第 {0} 轮生成}}',n.round):'',n.parent_event_id?'{{父节点 }}'+(byId.get(n.parent_event_id)?.node_id||n.parent_event_id):'{{根节点}}',n.version_id.slice(0,12)].filter(Boolean).join('  /  ');
  $('rationale').replaceChildren();
- for(const [label,value]of [['节点状态',[stateName(n.status),stateName(n.branch),n.reason].filter(Boolean).join(' · ')],['改动字段',n.changed_path],['假设',n.hypothesis],['预期',n.expected_effect],['风险',n.regression_risk],['规则',JSON.stringify(n.rule_refs)],['失败依据',JSON.stringify(n.evidence,null,2)]])if(value){$('rationale').append(el('b',label),el('pre',value));}
- $('runs').replaceChildren();
- for(const r of n.runs){const line=el('div',undefined,'item');line.append(el('b',r.split+' · '+r.status),el('pre',JSON.stringify({run_id:r.run_id,metrics:r.metrics,charged_target_calls:r.charged_calls,error:r.error},null,2)));$('runs').append(line);}
- $('prompt').textContent=n.prompt;$('diff').replaceChildren();
- for(const line of n.diff)$('diff').append(el('div',(line.kind==='add'?'+ ':line.kind==='remove'?'- ':'  ')+line.text,line.kind));
- draw();
+ if(n.kind==='root')$('rationale').append(el('h3','{{Prompt 源文件}}'),el('pre',manifest.baseline_source.prompt_sources.map(s=>s.file).join('\n')));
+ for(const [label,value]of [['{{先前暂缓原因}}',n.branch==='expanded' && n.deferred_reason],['{{回访原因}}',n.revisit_reason],['{{修改假设}}',n.hypothesis],['{{预期效果}}',n.expected_effect],['{{回归风险}}',n.regression_risk],['{{节点状态}}',[stateName(n.status),stateName(n.branch),n.reason].filter(Boolean).join(' · ')]])if(value)$('rationale').append(el('h3',label),el('p',value));
+ const src=manifest.baseline_source, examples=n.evidence||[],parent=byId.get(n.parent_event_id);
+ $('rationale').append(el('h3','{{这次修改的依据}}'));
+ const explanation=el('div',undefined,'evidence-summary');
+ if(parent){
+  explanation.append(el('p',examples.length?'{{这项修改参考了父版本的 }}'+examples.length+'{{ 条搜索错例。}}':'{{本节点没有关联可展示的搜索错例。}}'));
+  const sample=examples.find(e=>e.expected!==undefined && e.prediction!==undefined);
+  if(sample) explanation.append(el('p','{{例如 }}'+sample.case_id+'{{，父版本输出了 }}'+plainValue(sample.prediction)+'{{，样本期望 }}'+plainValue(sample.expected)+'{{。}}'));
+ }else explanation.append(el('p','{{这是后续候选共同使用的起点。评测使用 }}'+src.prompt_entry.file+'{{ 中的 Prompt 快照。}}'));
+ const sources=src.prompt_sources.map(s=>s.file.split('/').pop()).join('{{、}}');
+ explanation.append(el('p','{{来源文件为 }}'+sources+'{{。文件指纹用来核对复跑时使用的是否为同一份内容。}}'));
+ const evidence=el('details');evidence.append(el('summary','{{展开错例、规则与文件指纹}}'),el('pre',JSON.stringify({changed_path:n.changed_path,rules:n.rule_refs,evidence:examples,baseline:src},null,2)));
+ $('rationale').append(explanation,evidence);
+ const records=el('details',undefined,'evalRecords');records.append(el('summary','{{查看原始评测记录（}}'+n.runs.length+'{{）}}'));
+ for(const r of n.runs){
+  const line=el('div',undefined,'item');line.append(el('b',r.split+' · '+r.status),el('pre',JSON.stringify({run_id:r.run_id,metrics:r.metrics,charged_target_calls:r.charged_calls,error:r.error},null,2)));records.append(line);
+ }
+ $('runs').replaceChildren(scoreView(n),records);
+ $('prompt').textContent=n.prompt;
+ $('compareNode').value=id;
+ renderComparison(n);
 }
-function draw(){
- const visible=nodes.slice(0,reveal+1),positions=new Map(),children=new Map();
- for(const n of visible){if(!children.has(n.parent_event_id))children.set(n.parent_event_id,[]);children.get(n.parent_event_id).push(n);}
- const leaves=visible.filter(n=>!children.has(n.event_id)).length;
- document.querySelector('.grid').classList.toggle('wide',leaves>3);
- const width=Math.max(660,leaves*202),height=Math.max(300,(1+Math.max(...visible.map(n=>depth(n.event_id))))*130);
+const cards=new Map(),edges=new Map(),positions=new Map();
+function verification(n){
+ const run=validationRun(n);
+ return run?.metrics?.[manifest.comparison.metric]?.value;
+}
+function buildTree(){
+ const children=new Map();
+ for(const n of nodes){
+  const parent=byId.has(n.parent_event_id)?n.parent_event_id:null;
+  if(!children.has(parent))children.set(parent,[]);
+  children.get(parent).push(n);
+ }
+ const leaves=nodes.filter(n=>!children.has(n.event_id)).length;
+ const levels=Math.max(...nodes.map(n=>lineage(n.event_id).size));
+ const step=testPanel?181:155;
+ const cardHeight=n=>testByVersion.has(n.version_id)?137:100;
+ const width=Math.max(350,leaves*225+70),height=levels*step+32;
+ const tree=$('tree');tree.setAttribute('viewBox',`0 0 ${width} ${height}`);
+ $('treeStage').style.setProperty('--tree-height',height+'px');
  let leaf=0;
- function place(n,d){
-  const descendants=(children.get(n.event_id)||[]).map(child=>place(child,d+1));
-  const x=descendants.length?(descendants[0]+descendants.at(-1))/2:(leaf++ + .5)*width/leaves;
-  positions.set(n.event_id,{x,y:height-64-d*130});return x;
+ function place(n,level){
+  const xs=(children.get(n.event_id)||[]).map(c=>place(c,level+1));
+  const x=xs.length?(xs[0]+xs.at(-1))/2:42+(leaf++ +.5)*(width-54)/leaves;
+  positions.set(n.event_id,{x,y:24+level*step});return x;
  }
- for(const root of children.get(null)||[])place(root,0);
- $('tree').replaceChildren();$('tree').style.minWidth=(leaves*180)+'px';$('tree').setAttribute('viewBox','0 0 '+width+' '+height);
- for(const n of visible)if(n.parent_event_id&&positions.has(n.parent_event_id)){
-  const a=positions.get(n.parent_event_id),b=positions.get(n.event_id),middle=(a.y+b.y)/2;
-  $('tree').append(svg('path',{d:'M '+a.x+' '+(a.y-40)+' C '+a.x+' '+middle+', '+b.x+' '+middle+', '+b.x+' '+(b.y+40),class:'edge'}));
+ for(const n of children.get(null))place(n,0);
+ const lines=svg('g',{'aria-hidden':true}),branches=svg('g',{'aria-hidden':true}),bodies=svg('g',{});
+ tree.append(lines,branches,bodies);
+ for(let level=0;level<levels;level++){
+  const y=74+level*step;
+  lines.append(svg('line',{x1:34,x2:width-14,y1:y,y2:y,class:'level-line'}),svg('text',{x:9,y:y-6,class:'level-name'},'L'+(level+1)));
  }
- for(const n of visible){
-  const p=positions.get(n.event_id),g=svg('g',{class:'node'+(n.selected?' winner':'')+(n.status && n.status!=='completed'?' incomplete':'')+(n.event_id===selected?' selected':''),transform:'translate('+(p.x-90)+' '+(p.y-40)+')',role:'button',tabindex:'0','aria-label':n.event_id+' '+n.hypothesis});
-  const name=n.kind==='root'?'Baseline':n.operator||n.hypothesis||'候选';
-  g.append(svg('title',{},name),svg('rect',{width:180,height:80,rx:9}),svg('text',{x:10,y:20},(n.node_id||n.event_id)+' · '+stateName(n.status||'completed')),svg('text',{x:10,y:41,class:'caption'},name.length>24?name.slice(0,23)+'…':name));
-  const v=n.runs.find(r=>r.kind!=='original'&&r.split==='validation'&&r.status==='succeeded');
-  g.append(svg('text',{x:10,y:64},[v?pct(v.metrics[manifest.comparison.metric].value):'—',stateName(n.branch),n.selected?'选中':''].filter(Boolean).join(' · ')));
-  g.onclick=()=>show(n.event_id);g.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show(n.event_id);}};$('tree').append(g);
+ for(const n of nodes){
+  const id=n.event_id,{x,y}=positions.get(id),p=positions.get(n.parent_event_id);
+  if(p){
+   const parentBottom=p.y+cardHeight(byId.get(n.parent_event_id));
+   const mid=(parentBottom+y)/2;
+   const d=`M ${p.x} ${parentBottom} C ${p.x} ${mid}, ${x} ${mid}, ${x} ${y}`;
+   const edge=svg('path',{d,pathLength:1,class:'edge'}),particle=svg('path',{d,pathLength:1,class:'particle'});
+   branches.append(edge,particle);edges.set(id,{edge,particle});
+  }
+  const g=svg('g',{class:'node'+(n===winner?' winner':'')+(n.status&&n.status!=='completed'?' incomplete':''),transform:`translate(${x-99} ${y})`,role:'button','aria-label':(n.node_id||id)+' '+title(n),'data-event':id});
+  const body=svg('g',{}),score=verification(n),parentScore=p?verification(byId.get(n.parent_event_id)):undefined;
+  const delta=score!==undefined&&parentScore!==undefined?Math.round((score-parentScore)*1000)/10:null;
+  const name=title(n),row=byVersion.get(n.version_id),test=testByVersion.get(n.version_id);
+  const mainScore=row?row.mean:score;
+  const metricKind=row?retest.rounds+'{{ 轮验证均值}}':retest?'{{单次初筛}}':'{{验证集}}';
+  const detailScore=[row?'{{初筛 }}'+pct(row.screening.value):'',delta===null?'':'{{初筛较父版 }}'+(delta>0?'+':'')+delta+' pp'].filter(Boolean).join(' · ');
+  g.setAttribute('aria-label',[(n.node_id||id),name,n===winner?'{{锁版入选}}':'',metricKind,mainScore===undefined?'—':pct(mainScore),detailScore,test&&testPanel.rounds+'{{ 轮独立测试均值 }}'+pct(test.mean)].filter(Boolean).join('{{，}}'));
+  body.append(svg('title',{},name),svg('rect',{class:'halo',x:-4,y:-4,width:206,height:cardHeight(n)+8,rx:15}),svg('rect',{class:'card',width:198,height:cardHeight(n),rx:11}),
+   svg('text',{class:'meta',x:13,y:20},n.node_id||id),svg('text',{class:'status',x:185,y:20,'text-anchor':'end'},n===winner?(retest?'{{锁版入选}}':'{{选中版本}}'):n.kind==='root'?'{{基线}}':stateName(n.status||'candidate')),
+   svg('text',{class:'node-title',x:13,y:43},name.length>12?name.slice(0,11)+'…':name),svg('text',{class:'expandHint',x:184,y:43,'text-anchor':'end','aria-hidden':'true'},'⊕'),svg('line',{class:'divider',x1:13,x2:185,y1:54,y2:54}));
+  if(test){
+   const measures=[['{{初筛验证}}',score],[row?retest.rounds+'{{ 轮验证均值}}':'{{验证复测}}',row?.mean],[testPanel.rounds+'{{ 轮测试均值}}',test.mean]];
+   body.append(svg('rect',{class:'test-band',x:7,y:109,width:184,height:22,rx:5}));
+   measures.forEach(([label,value],i)=>{
+    const y=73+i*25,accent=i===2?' test-metric':'';
+    body.append(svg('text',{class:'metric-label'+accent,x:13,y},label),
+     svg('text',{class:'metric-value'+accent,x:185,y,'text-anchor':'end'},value===undefined?'—':pct(value)));
+   });
+  }else body.append(svg('text',{class:'score',x:13,y:78},mainScore===undefined?'—':pct(mainScore)),
+   svg('text',{class:'status',x:185,y:76,'text-anchor':'end'},metricKind),
+   svg('text',{class:'screen-score',x:13,y:95},detailScore));
+  if(children.has(id))body.append(svg('circle',{class:'port',cx:99,cy:cardHeight(n),r:3}));
+  if(p)body.append(svg('circle',{class:'port',cx:99,cy:0,r:3}));
+  g.append(body);bodies.append(g);cards.set(id,{g,body,visible:false});
+  g.setAttribute('aria-haspopup','dialog');g.setAttribute('aria-controls','nodePeek');g.setAttribute('aria-expanded','false');
+  const select=()=>{const wasOpen=peekAnchor===g;stop();show(id);setTab('runs');render();if(!wasOpen)openPeek(n,g);};
+  let dismissOnClick=false;
+  g.onpointerdown=()=>{dismissOnClick=peekAnchor===g;};
+  g.onclick=()=>{if(dismissOnClick){dismissOnClick=false;closePeek();}else select();};g.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select();}};
  }
- $('position').textContent=(reveal+1)+' / '+nodes.length;
 }
-function stop(){clearInterval(timer);timer=null;$('play').textContent='播放生长';}
-$('play').onclick=()=>{if(timer){stop();return;}reveal=0;$('timeline').value='0';show(nodes[0].event_id);$('play').textContent='暂停';timer=setInterval(()=>{if(reveal>=nodes.length-1){stop();return;}reveal++;$('timeline').value=String(reveal);show(nodes[reveal].event_id);},800);};
-$('timeline').oninput=()=>{stop();reveal=Number($('timeline').value);show(nodes[reveal].event_id);};
+function setupZoom(){
+ const tree=$('tree'),stage=$('treeStage'),fit=$('zoomFit'),plus=$('zoomIn'),minus=$('zoomOut');
+ const {width,height}=tree.viewBox.baseVal;
+ let scale=1,autoFit=true,drag=null;
+ const fitScale=()=>Math.min(1,stage.clientWidth/width,stage.clientHeight/height);
+ function resize(next,x,y){
+  const area=stage.getBoundingClientRect(),before=tree.getBoundingClientRect();
+  x??=area.left+stage.clientWidth/2;y??=area.top+stage.clientHeight/2;
+  const u=(x-before.left)/before.width,v=(y-before.top)/before.height;
+  const min=Math.min(.1,fitScale());
+  scale=Math.min(3,Math.max(min,next));
+  tree.style.width=width*scale+'px';tree.style.height=height*scale+'px';
+  if(autoFit){stage.scrollTo(0,0);}
+  else{
+   const after=tree.getBoundingClientRect();
+   stage.scrollLeft+=after.left+u*after.width-x;stage.scrollTop+=after.top+v*after.height-y;
+  }
+  $('zoomLevel').textContent=Number((scale*100).toFixed(scale<.1?1:0))+'%';
+  fit.setAttribute('aria-pressed',String(autoFit));minus.disabled=scale<=min;plus.disabled=scale>=3;
+  stage.classList.toggle('zoomed',stage.scrollWidth>stage.clientWidth||stage.scrollHeight>stage.clientHeight);
+  positionPeek();
+ }
+ function zoom(factor,x,y){autoFit=false;resize(scale*factor,x,y);}
+ function fitTree(){autoFit=true;resize(fitScale());}
+ plus.onclick=()=>zoom(1.35);minus.onclick=()=>zoom(1/1.35);fit.onclick=fitTree;
+ stage.addEventListener('wheel',e=>{
+  if(!(e.ctrlKey||e.metaKey)||!e.deltaY)return;
+  e.preventDefault();zoom(Math.exp(-Math.max(-100,Math.min(100,e.deltaY))*.009),e.clientX,e.clientY);
+ },{passive:false});
+ stage.addEventListener('pointerdown',e=>{
+  if(e.pointerType!=='mouse'||e.button!==0||e.target.closest('.node')||!stage.classList.contains('zoomed'))return;
+  drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:stage.scrollLeft,top:stage.scrollTop};
+  stage.setPointerCapture(e.pointerId);stage.classList.add('dragging');e.preventDefault();
+ });
+ stage.addEventListener('pointermove',e=>{
+  if(drag?.id===e.pointerId)stage.scrollTo(drag.left+drag.x-e.clientX,drag.top+drag.y-e.clientY);
+ });
+ stage.addEventListener('lostpointercapture',()=>{drag=null;stage.classList.remove('dragging');});
+ new ResizeObserver(()=>resize(autoFit?fitScale():scale)).observe(stage);
+ fitTree();
+}
+function animateEntry(element,frames,duration,delay){
+ if(motion.matches||!element.animate)return;
+ element.getAnimations().forEach(a=>a.cancel());
+ element.animate(frames,{duration,delay,easing:'cubic-bezier(.22,.61,.36,1)',fill:'backwards'});
+}
+function render(intro=false,animate=true){
+ const visible=new Set(sequence.slice(0,reveal+1).map(n=>n.event_id)),active=lineage(selected),speed=Number($('speed').value);
+ for(const n of nodes){
+  const id=n.event_id,item=cards.get(id),edge=edges.get(id),shown=visible.has(id);
+  const newly=shown&&!item.visible&&animate,delay=intro?((n.round||lineage(id).size)-1)*320:0;
+  if(edge){
+   for(const path of [edge.edge,edge.particle]){
+    path.style.display=shown?'':'none';path.classList.toggle('active',active.has(id));
+   }
+   if(newly)animateEntry(edge.edge,[{strokeDasharray:'1',strokeDashoffset:1},{strokeDasharray:'1',strokeDashoffset:0}],650/speed,delay);
+  }
+  item.g.style.display=shown?'':'none';
+  item.g.setAttribute('tabindex',shown?'0':'-1');item.g.setAttribute('aria-hidden',String(!shown));
+  item.g.setAttribute('aria-pressed',String(selected===id));item.g.classList.toggle('selected',selected===id);
+  if(newly)animateEntry(item.body,[{opacity:0,transform:'translateY(-10px)'},{opacity:1,transform:'translateY(0)'}],520/speed,delay+(edge?350/speed:0));
+  item.visible=shown;
+ }
+ $('timeline').max=sequence.length-1;$('timeline').value=reveal;$('position').textContent=(reveal+1)+' / '+sequence.length;
+ for(const button of $('layerNav').children)button.setAttribute('aria-pressed',String(button.value===selected));
+ $('stageCaption').textContent=nodes.length+'{{ 个节点 · 点击节点展开评测 · 各层导航显示初筛最高分 · }}'+manifest.comparison.metric;
+ const stage=$('treeStage'),focus=intro?sequence[0].event_id:selected;
+ const bounds=stage.getBoundingClientRect(),card=cards.get(focus).g.getBoundingClientRect();
+ if(card.left<bounds.left||card.right>bounds.left+stage.clientWidth)stage.scrollLeft+=card.left+card.width/2-bounds.left-stage.clientWidth/2;
+ if(card.top<bounds.top||card.bottom>bounds.top+stage.clientHeight)stage.scrollTop+=card.top+card.height/2-bounds.top-stage.clientHeight/2;
+}
+function stop(){clearTimeout(timer);timer=null;$('tree').classList.remove('playing');$('play').textContent=reveal<sequence.length-1?'{{继续播放}}':'{{播放生长}}';}
+function schedule(){
+ clearTimeout(timer);timer=setTimeout(()=>{
+  if(reveal===sequence.length-1){stop();return;}
+  reveal++;show(sequence[reveal].event_id);render();schedule();
+ },1300/Number($('speed').value));
+}
+function play(restart){
+ stop();
+ if(restart||reveal===sequence.length-1){reveal=0;show(sequence[0].event_id);render();}
+ if(sequence.length>1){$('tree').classList.add('playing');$('play').textContent='{{暂停}}';schedule();}
+}
+$('play').onclick=()=>timer?stop():play(false);$('restart').onclick=()=>play(true);
+$('speed').onchange=()=>{if(timer)schedule();};
+$('timeline').oninput=()=>{reveal=Number($('timeline').value);stop();show(sequence[reveal].event_id);render(false,false);};
+$('winnerPath').onclick=()=>{
+ const only=$('winnerPath').getAttribute('aria-pressed')!=='true';$('winnerPath').setAttribute('aria-pressed',String(only));
+ sequence=only?nodes.filter(n=>winnerLine.has(n.event_id)):nodes;reveal=sequence.length-1;stop();show(winner.event_id);render();
+};
+function setTab(name){
+ for(const b of document.querySelectorAll('[data-tab]')){
+  const active=b.dataset.tab===name;b.setAttribute('aria-pressed',String(active));$(b.dataset.tab).hidden=!active;
+ }
+}
+for(const b of document.querySelectorAll('[data-tab]'))b.onclick=()=>setTab(b.dataset.tab);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
-show(selected);
+motion.addEventListener('change',()=>{stop();$('tree').getAnimations({subtree:true}).forEach(a=>a.cancel());});
+for(const n of nodes){
+ const opt=el('option',(n.node_id||n.event_id)+' · '+title(n));opt.value=n.event_id;
+ if(n.version_id)$('compareBase').append(opt.cloneNode(true));
+ $('compareNode').append(opt);
+}
+$('compareBase').onchange=()=>{stop();renderComparison(byId.get(selected));};
+function selectVersion(id){
+ if(!sequence.some(n=>n.event_id===id)){sequence=nodes;$('winnerPath').setAttribute('aria-pressed','false');}
+ reveal=Math.max(reveal,sequence.findIndex(n=>n.event_id===id));stop();show(id);render();
+}
+$('compareNode').onchange=()=>selectVersion($('compareNode').value);
+const layersByDepth=new Map();
+for(const n of nodes){
+ const depth=lineage(n.event_id).size;
+ if(!layersByDepth.has(depth))layersByDepth.set(depth,[]);
+ layersByDepth.get(depth).push(n);
+}
+for(const [depth,members] of [...layersByDepth].sort(([a],[b])=>a-b)){
+ const scored=members.filter(n=>Number.isFinite(verification(n)));
+ const best=scored.reduce((a,b)=>!a||verification(b)>verification(a)?b:a,null);
+ const button=el('button');button.disabled=!best;
+ button.append(el('small',message('{{第 {0} 层 · {1} 个节点}}',depth,members.length)),el('b',best?pct(verification(best)):'—'));
+ if(best){button.value=best.event_id;button.title='{{定位本层单次初筛最高分 }}'+(best.node_id||best.event_id);button.onclick=()=>selectVersion(best.event_id);}
+ $('layerNav').append(button);
+}
+buildTree();setupZoom();setTab(byVersion.has(winner.version_id)||testByVersion.has(winner.version_id)?'runs':'rationale');show(selected);render(true);
 </script>
 </body>
 </html>

@@ -1,0 +1,34 @@
+{
+  "schema_version": "prompttree-project-v1",
+  "project_id": "after-sales",
+  "execution_kind": "mock",
+  "workspace": ".",
+  "prompt_entry": "prompt.json",
+  "policy": {
+    "editable_paths": [
+      "/messages/0/content"
+    ]
+  },
+  "evaluate_argv": [
+    "node",
+    "evaluate.cjs",
+    "{candidate_file}",
+    "{dataset_file}",
+    "{request_file}",
+    "{result_file}"
+  ],
+  "protected_files": [
+    "support.cjs",
+    "evaluate.cjs",
+    "README.md",
+    "model.cjs",
+    "scoring.cjs",
+    "answer/gold.json",
+    "baseline.cjs"
+  ],
+  "runner_timeout_seconds": 10,
+  "target_calls_per_case_bound": 0,
+  "call_bound_kind": "none",
+  "remote_effects": false,
+  "baseline_accuracy_report": "baseline/reference-mock/accuracy_report.json"
+}

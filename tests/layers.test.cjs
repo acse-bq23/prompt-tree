@@ -131,3 +131,76 @@ test('a one-level contract stops at the root and preserves the depth boundary',t
   assert.equal(tree.nodes[0].branch,'depth_limit');
   assert.equal(tree.nodes[0].selected,true);
 });
+
+test('deferred parent competes with the current frontier without changing depth or paying twice',t=>{
+  const f=fixture(t,4), root=call(...f.args).nodes[0];
+  const submit=plan=>call('layer-submit','--run',f.run,'--plan',write(path.join(f.dir,'plan.json'),plan),'--wait');
+  function edit(parent,text,revisit_reason) {
+    const candidate=read(path.join(f.run,'versions',parent.version_id+'.json')).candidate;
+    candidate.messages[0].content+=' '+text;
+    return {candidate,revisit_reason,proposal:{parent_event_id:parent.event_id,evidence_refs:[parent.search_run_id+'/search'],
+      rule_refs:[f.rule],operator:text,hypothesis:text,expected_effect:'Cover missing route',regression_risk:'Extra labels'}};
+  }
+  const [left,right,closed]=submit({level:2,nodes:['A','B','C'].map(s=>edit(root,s))}).nodes;
+  const third=submit({level:3,nodes:[edit(left,'A1')],defer:[{parent_event_id:right.event_id,reason:'Untried narrower trigger'}],
+    stops:[{parent_event_id:closed.event_id,reason:'Exhausted direction'}]});
+  assert.equal(third.backtracking.review_recommended,true);
+  assert.deepEqual(third.backtracking.deferred.map(n=>n.id),[right.id]);
+  const forward=edit(third.nodes[0],'A2'), back=edit(right,'B1','Stalled for two rounds');
+  assert.throws(()=>submit({level:4,nodes:[forward,edit(closed,'C1','revisit')]}));
+  assert.throws(()=>submit({level:4,nodes:[forward,edit(right,'B1')]}));
+  const fourth=submit({level:4,nodes:[forward,back]});
+  assert.deepEqual(fourth.nodes.map(n=>[n.id,n.depth,n.round]),[['L4-N1',4,4],['L3-N2',3,4]]);
+  assert.equal(fourth.next,'review_each_parent');
+  assert.deepEqual(fourth.backtracking.deferred,[]);
+  const fifth={level:5,nodes:[edit(fourth.nodes[1],'Return all matching labels.')]};
+  assert.throws(()=>submit({...fifth,nodes:[...fifth.nodes,edit(fourth.nodes[0],'beyond depth')]}));
+  assert.throws(()=>submit({...fifth,nodes:[...fifth.nodes,back]}));
+  const receipt=submit(fifth), charges=f.meter().length;
+  assert.equal(receipt.next,'finalize');
+  assert.deepEqual(submit(fifth),receipt);
+  assert.equal(f.meter().length,charges);
+  const final=call('finalize','--run',f.run,'--version',receipt.nodes[0].version_id,'--reason','depth_limit');
+  const tree=read(path.join(final.output,'evolution.json')), child=tree.nodes.find(n=>n.node_id==='L3-N2');
+  assert.deepEqual([child.parent_event_id,child.level,child.round,child.revisit_reason],[right.event_id,3,4,back.revisit_reason]);
+  assert.equal(tree.nodes.find(n=>n.node_id===right.id).deferred_reason,'Untried narrower trigger');
+  assert.equal(tree.nodes.at(-1).node_id,'L4-N2');
+  assert.equal(charges,tree.nodes.length*2);
+});
+
+test('a weaker capped branch prompts a whole-tree review and permits a new sibling on a closed branch',t=>{
+  const f=fixture(t), root=call(...f.args).nodes[0];
+  const submit=plan=>call('layer-submit','--run',f.run,'--plan',write(path.join(f.dir,'plan.json'),plan),'--wait');
+  function edit(parent,phrase,revisit_reason) {
+    const candidate=read(path.join(f.run,'versions',parent.version_id+'.json')).candidate;
+    candidate.messages[0].content+=' '+phrase;
+    return {candidate,revisit_reason,proposal:{parent_event_id:parent.event_id,evidence_refs:[parent.search_run_id+'/search'],
+      rule_refs:[f.rule],operator:phrase,hypothesis:phrase,expected_effect:'Recover labels',regression_risk:'Extra labels'}};
+  }
+  const [leader,left,right]=submit({level:2,nodes:[edit(root,'Return all matching labels.'),edit(root,'Focus.'),edit(root,'Check carefully.')]}).nodes;
+  const capped=submit({level:3,nodes:[edit(left,'Be concise.')],stops:[
+    {parent_event_id:leader.event_id,reason:'Search passed'},{parent_event_id:right.event_id,reason:'Initial direction exhausted'}]});
+  assert.equal(capped.next,'review_whole_tree');
+  const finalize=(reason,...args)=>call('finalize','--run',f.run,'--version',leader.version_id,'--reason',reason,...args);
+  assert.throws(()=>finalize('depth_limit'));
+  assert.throws(()=>finalize('plateau'));
+  const audit=()=>call('tree-review','--run',f.run);
+  const first=audit();
+  assert.equal(first.nodes.length,5);
+  assert.equal(first.leader,leader.id);
+  assert.equal(first.nodes.find(n=>n.id===right.id).branch,'stopped');
+  assert.deepEqual(first.nodes.find(n=>n.id===left.id).failed_only_vs_leader,['search']);
+  const decision=a=>({snapshot_id:a.snapshot_id,nodes:a.nodes.map(n=>({id:n.id,decision:n.can_branch?'close':'depth_limit',
+    reason:n.can_branch?'All known error mechanisms compared':'Reference for other branches'}))});
+  const file=path.join(f.dir,'decision.json');
+  write(file,decision(first));
+  const again=submit({level:4,nodes:[edit(right,'Choose carefully.','New error evidence from the capped sibling')]});
+  assert.equal(again.nodes[0].parent_event_id,right.event_id);
+  assert.throws(()=>finalize('plateau','--review',file));
+  const current=audit(), report=decision(current);
+  write(file,{...report,nodes:report.nodes.slice(1)});
+  assert.throws(()=>finalize('plateau','--review',file));
+  write(file,report);
+  const final=finalize('plateau','--review',file);
+  assert.deepEqual(final.manifest.tree_review.nodes,report.nodes);
+});

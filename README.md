@@ -1,52 +1,59 @@
 # <img src="skills/prompttree/assets/prompt-tree-mark.png" width="44" height="44" align="absmiddle" alt=""> Prompt Tree
 
-[English](README.en.md) · [运行示例](#先看一棵树) · [贡献指南](CONTRIBUTING.md) · [MIT 许可证](LICENSE)
+[English](README.en.md) · [示例报告](examples/reports/) · [Skill 使用说明](skills/prompttree/SKILL.md)
 
-用项目自己的样例，找出哪一处 Prompt 改动值得保留。这个 Codex Skill 会追踪实际发给模型的消息，跑出基线，再把每个改动假设画成一个分支。点开离线报告里的节点，就能看到改了哪句话、哪条失败样例促成了修改，以及验证分数有没有提高。
+Prompt Tree 是一个 Codex Skill。它用项目自己的样例评测当前 Prompt，从答错的样本提出小改动，再把各版本的来路、分数和逐题差异放进一棵可交互的树。你可以从最终入选的版本一路追到源文件，也可以直接比较两条不同分支。
 
 ## 先看一棵树
 
-下面是三层合成工单实验生成的 HTML 报告。根节点在底部。每条边代表相对直接父版本的一处 Prompt 修改。节点卡片显示层级、编号、评测状态、验证分数和展开状态；绿色标出选中版本。
+下面是 Restaurant8K 餐厅预订字段抽取实验的实际录屏。看 17 个版本如何长成六层，再点开 L6-N1 的逐轮成绩。它在验证复测中领先 L6-N2 **1.11 个百分点**，独立测试中两版只差 **0.17 个百分点**。
 
-![三层 Prompt Tree 的 HTML 报告，根节点分出三个方向，再派生六个候选](examples/label-routing/tree-preview.png)
+[![Restaurant8K 的六层树从根节点逐步展开，最后打开 L6-N1 的验证与独立测试成绩](examples/reports/restaurant8k-growth.gif)](examples/reports/restaurant8k.html)
 
-这次基线答对 1/4 个验证工单。第二层分别处理多标签遗漏、大小写、密码同义词，三个版本均为 2/4。第三层的每个父节点各剩两类有证据的错误，因此共有六个子节点，分数均为 3/4。20 个切分请求中，16 个实际执行、4 个复用同内容的缓存，全部使用本地模拟模型。[评分规则与示例源码](examples/label-routing/README.md)
+[打开中文交互报告](examples/reports/restaurant8k.html) · [English report](examples/reports/restaurant8k.en.html) · [查看静态全图](examples/reports/restaurant8k-preview.png)
 
-```sh
-npm run demo
-```
+## 从一个示例开始
 
-打开输出中 `report` 指向的 HTML，可以点选节点查看原文、修改依据和逐行差异。
+| 你想看什么 | 示例 | 可以验证的结果 |
+| --- | --- | --- |
+| 在自己的电脑上跑完整流程 | [合成工单路由 · 可运行](examples/label-routing/README.md) | 三种错误长出三条分支。验证集从 1/4 到 3/4，全程使用本地模拟模型。 |
+| 为什么要回访旧分支 | Banking77 · [中文](examples/reports/banking77.html) / [English](examples/reports/banking77.en.html) | 第 5 轮从第 2 层的 L2-N2 再分叉。新分支在验证集改对 4 题、改错 9 题，最终选中较早的 L2-N3。 |
+| 单次分数最高的版本是否值得锁定 | Restaurant8K · [中文](examples/reports/restaurant8k.html) / [English](examples/reports/restaurant8k.en.html) | 比较 L6-N1 和 L6-N2，观察初筛排名如何在五轮复测后反转，再看独立测试能否复现差距。 |
 
-## 安装到业务项目
+在 GitHub 点击 HTML 链接后，选择 **Download raw file**，再用浏览器打开；克隆仓库后也可直接双击 HTML。两份真实实验报告都内置数据，无需 API key。树支持缩放、适应视窗和节点展开，在「Prompt 对比」可以左右选择任意两版。[数据来源、许可与演示路径](examples/reports/README.md)
 
-需要 Codex 和 Node.js 22+。下面的命令克隆仓库，并把完整 Skill 放入目标项目。将 `/path/to/your-project` 换成业务项目的路径。
+## 本地跑一棵树
+
+需要 Node.js 22 或更高版本。演示使用 Node 标准库，直接运行：
 
 ```sh
 git clone https://github.com/acse-bq23/prompt-tree.git
 cd prompt-tree
+npm run demo
+```
+
+输出中的 `report` 指向中文版，`report_en` 指向英文版。打开任一 HTML 即可查看。试着比较根节点与一个子节点，看看新增的指令修好了哪些工单。若要接入已有的批处理基线，可参考[商城售后项目的输入、金标准和评测脚本](examples/after-sales/README.md)。
+
+## 在自己的项目中使用
+
+从本仓库根目录把整个 Skill 复制到目标项目：
+
+```sh
 mkdir -p /path/to/your-project/.agents/skills
 cp -R skills/prompttree /path/to/your-project/.agents/skills/
 ```
 
-在目标项目中打开 Codex，输入：
+在目标项目中打开 Codex，例如输入：
 
-> 用 $prompttree 找一个值得优化的 Prompt，用现有样例设计测试。需要我定的业务标准再问我，确认后比较最小改动并生成 Prompt Tree。
+> 用 $prompttree 优化这个项目的客服路由 Prompt，最多探索六层。先定位实际调用的 Prompt 和现有评分脚本，核对数据切分与金标准。跑出基线后，根据错例提出小改动，最后比较入围版本，生成报告。
 
-## 它如何决定保留哪一版
+1. **建立基线。** 确认 Prompt 源文件、模板、评测器和指标，按工单或会话等独立单位切分数据。用固定输入和评分器评测原版。
+2. **让分支长在具体错例上。** 每个子版针对直接父版的一类探索集错误，保留修改依据和完整 Prompt。通常优先将每步改动控制在父版文本的 5% 以内，超过 10% 时复核。后续提案会查看祖先和旁支；达到深度上限后，仍可回访有互补收益的旧节点。
+3. **用验证复测选版。** 锁版前让入围版本在同一批验证题上重复运行，观察波动并比较均值。预先约定什么差距值得换版。进入最高档的候选还可比较误拒率、Prompt 长度。
+4. **用独立测试检验选版结果。** 锁版后用另一批留出的题检验优势能否保持。项目可通过 `report-test` 将测试回执附到同一份报告，分别查看初筛、验证复测与独立测试。
 
-1. **先确认深度。** Codex 先问最多探索几层，初始版本算第 1 层。每层有多少分支由各父节点自己的错误证据决定。
-2. **选点与评分。** Codex 沿业务调用定位 Prompt，检查已有样例和预期结果，复用或编写评测适配器。例如，规范没有定义「漏掉一个标签是否给部分分」时，它会先问你。付费评测使用已授权预算。
-3. **固定基线。** 复用现有探索集与验证集，或按工单、会话等独立单位分组切分。缺少可判定的预期或独立样例时，接入计划会列出具体缺口。
-4. **按层验收。** 整层一次提交到后台，活动 Codex 会话等待一次完成回执，逐个分析父节点并自动继续下一层。 每条边引用父版本的探索集失败和一条已确认规则。CLI 在运行前检查修改只涉及一个可编辑字段、一条消息和一处连续行差异。验证集持平可保留基线。报告记录探索结果，正式验收需要另行测试。
+例如，Restaurant8K 把探索、验证、独立测试各固定为 360 题。在这批样本上，L6-N1 验证均值领先 L6-N2 **1.11 个百分点**，超过事先约定的 1 个百分点门槛。独立测试上，L6-N2 反超 **0.17 个百分点**，两版同档。这个门槛用于选版，**同档**表示两版的实测差距小于约定的实际提升幅度。
 
-等待端关闭后可用 `layer-resume --run RUN --level N --wait` 续接原层。恢复会复用已确认结果，读取在途评测的原始回执。远程结果无法确认时保留预算并标记待对账。关闭整个 Codex 会话后，再次打开可从记录继续。 [批次格式与状态](skills/prompttree/references/layers.md)
+## 接入与维护
 
-## 项目导航
-
-| 想做什么 | 入口 |
-| --- | --- |
-| 了解 Codex 首次进入项目时的工作流程 | [首次接入](skills/prompttree/references/intake.md) |
-| 接入自己的执行器、样例和评分器 | [配置与结果合同](skills/prompttree/references/contracts.md) |
-| 查看预算或继续中断的实验 | [恢复与预算](skills/prompttree/references/recovery.md) |
-| 修改源码、运行测试或报告问题 | [贡献指南](CONTRIBUTING.md) |
+[首次接入](skills/prompttree/references/intake.md) · [配置、数据与评测回执](skills/prompttree/references/contracts.md) · [分支与回访规则](skills/prompttree/references/layers.md) · [恢复中断的实验](skills/prompttree/references/recovery.md) · [贡献指南](CONTRIBUTING.md) · [代码许可证 MIT](LICENSE)

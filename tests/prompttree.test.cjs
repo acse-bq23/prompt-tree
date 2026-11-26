@@ -8,7 +8,8 @@ const { execFileSync } = require('node:child_process');
 const { Script } = require('node:vm');
 const root = path.resolve(__dirname, '..'), skill = path.join(root, 'skills/prompttree');
 const W = require('../skills/prompttree/lib/workflow.cjs'), S = require('../skills/prompttree/lib/store.cjs');
-const { diff, patch } = require('../skills/prompttree/lib/report.cjs');
+const { diff, patch, validationCases, validationHistories } = require('../skills/prompttree/lib/report.cjs');
+const { editSize } = require('../skills/prompttree/lib/edit-size.cjs');
 
 const write = (file, value) => fs.writeFileSync(file, JSON.stringify(value, null, 2) + '\n');
 function setup(t, change = {}) {
@@ -55,6 +56,14 @@ function candidateInput(f, p, split = 'search', id = 'candidate-search') {
 }
 test('portable CLI completes Probe, reopens records and produces safe independent offline artifacts', async t => {
   const f = setup(t), copied = path.join(f.dir, 'copied-skill'); fs.cpSync(skill, copied, { recursive:true });
+  f.project.prompt_sources = ['support/prompt.json', 'billing/prompt.json'];
+  for (const file of f.project.prompt_sources) {
+    fs.mkdirSync(path.join(f.dir, path.dirname(file)));
+    write(path.join(f.dir, file), f.base);
+  }
+  f.project.baseline_accuracy_report = 'support/accuracy_report.json';
+  write(path.join(f.dir, f.project.baseline_accuracy_report), { accuracy:0 });
+  write(f.projectFile, f.project);
   const cli = path.join(copied, 'scripts/prompttree.cjs');
   const call = (...args) => JSON.parse(execFileSync(process.execPath, [cli, ...args, '--run',f.run], { encoding:'utf8' }));
   call('prepare','--project',f.projectFile,'--task',f.taskFile);
@@ -67,6 +76,14 @@ test('portable CLI completes Probe, reopens records and produces safe independen
   assert.equal(v.result.cases, undefined);
   assert.equal(call('prepare').phase, 'searching');
   const result = call('finalize','--version',c.version_id,'--reason','target_reached');
+  const origin = result.manifest.baseline_source;
+  assert.deepEqual(origin.prompt_sources.map(item => item.file), f.project.prompt_sources);
+  assert.equal(origin.prompt_entry.file, f.project.prompt_entry);
+  assert.equal(origin.accuracy_report.file, f.project.baseline_accuracy_report);
+  assert.equal(origin.version_id, source.version_id);
+  for (const item of [origin.prompt_entry, ...origin.prompt_sources, origin.accuracy_report]) {
+    assert.equal(item.sha256, require('node:crypto').hash('sha256', fs.readFileSync(path.join(f.dir, item.file))));
+  }
   assert.equal(result.manifest.comparison.baseline.value, 0);
   assert.equal(result.manifest.comparison.candidate.value, 1);
   assert.equal(result.manifest.test_status, 'not_tested'); assert.equal(result.manifest.release_decision, null);
@@ -79,6 +96,14 @@ test('portable CLI completes Probe, reopens records and produces safe independen
   assert.ok(!/\b(?:fetch|XMLHttpRequest|WebSocket)\s*\(/.test(html));
   assert.ok(!/\.innerHTML\s*=/.test(html));
   const data = JSON.parse(html.match(/id="report-data">([\s\S]*?)<\/script>/)[1]);
+  const english = fs.readFileSync(result.report_en, 'utf8');
+  assert.match(english, /<html lang="en">/);
+  assert.match(english, />Prompt comparison</);
+  assert.match(html, />Prompt 对比</);
+  assert.deepEqual(JSON.parse(english.match(/id="report-data">([\s\S]*?)<\/script>/)[1]), data);
+  assert.doesNotThrow(() => new Script(english.match(/id="report-ui">([\s\S]*?)<\/script>/)[1]));
+  assert.equal(data.validation_cases, undefined);
+  assert.equal(data.validation_histories, undefined);
   assert.ok(data.nodes[1].prompt.includes('</script><script>untrusted()'));
   assert.doesNotThrow(() => new Script(html.match(/id="report-ui">([\s\S]*?)<\/script>/)[1]));
   const again = call('finalize');
@@ -135,6 +160,15 @@ test('baseline and budgets gate execution; exhausted runs can still deliver the 
   const over = setup(t,{ bound:3, maxCalls:2 }); await over.prepare();
   await assert.rejects(W.evaluate({run:over.run,baseline:true,split:'search',requestId:'bound'}),{ code:'BUDGET_EXHAUSTED' });
   assert.equal(fs.existsSync(path.join(over.dir,'trace.txt')),false);
+});
+test('a task can omit the aggregate model-call limit and still record usage', async t => {
+  const f = setup(t, { bound:501 });
+  delete f.task.budget.max_target_calls;
+  write(f.taskFile, f.task);
+  await f.prepare();
+  const result = await baseline(f);
+  assert.equal(result.ok, true);
+  assert.equal(W.usage(S.open(f.run)).simulated_calls, 2);
 });
 test('changed protected code and tampered result blobs cannot silently be reused', async t => {
   const f = setup(t); await f.prepare(); const b = await baseline(f), p = proposal(f,b);
@@ -200,6 +234,35 @@ test('concurrent writers fail safely, secret diagnostics are redacted, and diffs
   const lines=diff('a\nb','b\nc');
   assert.equal(lines.filter(l=>l.kind!=='add').map(l=>l.text).join('\n'),'a\nb');
   assert.equal(lines.filter(l=>l.kind!=='remove').map(l=>l.text).join('\n'),'b\nc');
+});
+test('edit size measures changes against the direct parent in Unicode characters', () => {
+  assert.deepEqual(editSize('a😀b','a树b'), { parent_length:3, length:3, removed:1, added:1, ratio:1/3 });
+  assert.equal(editSize('x'.repeat(20), 'x'.repeat(19)).ratio, .05);
+  assert.equal(editSize('x'.repeat(20), 'x'.repeat(22)).ratio, .1);
+  assert.equal(editSize('abc','abc').ratio, 0);
+  assert.equal(editSize('','abc').ratio, null);
+});
+test('validation comparison only projects complete paired evidence from the scored run', t => {
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'prompttree-pairs-'));
+  t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+  const run={run_id:'r1',result_path:'result.json',split:'validation',status:'succeeded'};
+  const nodes=[{runs:[{...run,kind:'original',result_path:'original.json'},run]}];
+  const sample={case_id:'c1',failed:false,prediction:'A',expected:'A'};
+  const result={case_ids:['c1'],cases:[{...sample,input_excerpt:'private'}]};
+  write(path.join(dir,run.result_path),result);
+  assert.deepEqual(validationCases(nodes,dir),{r1:[sample]});
+  write(path.join(dir,run.result_path),{...result,case_ids:['c1','c2']});
+  assert.deepEqual(validationCases(nodes,dir),{});
+});
+test('conversation export joins by the configured ID and projects the selected input history', t => {
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'prompttree-history-'));
+  t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+  const dataset={path:path.join(dir,'inputs.jsonl'),id_field:'id'};
+  const turns=[{role:'user',content:'original\nmessage',private_note:'omit'},{role:'action',action:'lookup',text:'Done.'}];
+  const inputs=[{id:'unused',messages:turns},{id:'c1',messages:turns},{id:'empty',messages:[]},{id:'missing'}];
+  fs.writeFileSync(dataset.path,inputs.map(r=>JSON.stringify(r)).join('\n'));
+  const result=validationHistories(dataset,'messages',{r:[{case_id:'empty'},{case_id:'missing'},{case_id:'c1'}]});
+  assert.deepEqual({...result},{c1:[{role:'user',text:'original\nmessage'},{role:'action',text:'Done.',action:'lookup'}],empty:[]});
 });
 test('native integration patches apply exactly, including final newline changes', t => {
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'prompttree-patch-'));

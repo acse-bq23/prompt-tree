@@ -21,7 +21,6 @@
   "budget": {
     "max_attempts": 8,
     "max_evaluations": 6,
-    "max_target_calls": 24,
     "max_wall_time_seconds": 1800
   },
   "accept_declared_call_bound": false,
@@ -35,6 +34,7 @@
   ],
   "evidence": {
     "search_cases_visible": false,
-    "export_search_cases": false
+    "export_search_cases": false,
+    "export_validation_comparison": false
   }
 }

@@ -1,0 +1,402 @@
+[
+  {
+    "case_id": "S001",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "S002",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "S003",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "S004",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "S005",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "S006",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "S007",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "S008",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "S009",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "S010",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "S011",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "S012",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "S013",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "S014",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "S015",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "S016",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "S017",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "S018",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "S019",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "S020",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T001",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T005",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T009",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T013",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T017",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T021",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T025",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T029",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T033",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T037",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T041",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T045",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T002",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T006",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T010",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T014",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T018",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T022",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T026",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T030",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T034",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T038",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T042",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T046",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T003",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T007",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T011",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T015",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T019",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T023",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T027",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T031",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T035",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T039",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T043",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T047",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T004",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T008",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T012",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T016",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T020",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T024",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T028",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T032",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T036",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T040",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T044",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T048",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "V001",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "V002",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "V003",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "V004",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "V005",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "V006",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "V007",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "V008",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "V009",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "V010",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "V011",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "V012",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T049",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T053",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T057",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T061",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T065",
+    "expected": "查看物流轨迹"
+  },
+  {
+    "case_id": "T050",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T054",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T058",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T062",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T066",
+    "expected": "登记签收异常"
+  },
+  {
+    "case_id": "T051",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T055",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T059",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T063",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T067",
+    "expected": "发起退货申请"
+  },
+  {
+    "case_id": "T052",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T056",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T060",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T064",
+    "expected": "查看退款流水"
+  },
+  {
+    "case_id": "T068",
+    "expected": "查看退款流水"
+  }
+]

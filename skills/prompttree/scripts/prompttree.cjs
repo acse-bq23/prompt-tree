@@ -19,8 +19,11 @@ const help = {
     'node scripts/prompttree.cjs prepare --run RUN_DIRECTORY',
     'node scripts/prompttree.cjs evaluate --run RUN_DIRECTORY --baseline --split search --request-id baseline-search',
     'node scripts/prompttree.cjs evaluate --run RUN_DIRECTORY --candidate prompt.json --proposal proposal.json --split search --request-id candidate-search',
+    'node scripts/prompttree.cjs retest-summary --run RUN_DIRECTORY --retest receipts.json',
+    'node scripts/prompttree.cjs report-test --run RUN_DIRECTORY --plan test/report-plan.json',
+    'node scripts/prompttree.cjs tree-review --run RUN_DIRECTORY',
     'node scripts/prompttree.cjs status --run RUN_DIRECTORY',
-    'node scripts/prompttree.cjs finalize --run RUN_DIRECTORY --version VERSION_ID --reason plateau'
+    'node scripts/prompttree.cjs finalize --run RUN_DIRECTORY --version VERSION_ID --reason plateau [--review decisions.json] [--retest receipts.json]'
   ],
   notes:['Probe only; verify fails before paid execution.', 'Use --repeat for an independent evaluation; a reused request-id is idempotent.',
     'Use --original with --baseline when original_evaluate_argv is configured.', 'The skill directory is portable; Node.js 22+ required.']
@@ -35,7 +38,7 @@ async function main() {
     project:{ type:'string' }, task:{ type:'string' }, run:{ type:'string' }, candidate:{ type:'string' },
     proposal:{ type:'string' }, split:{ type:'string' }, 'request-id':{ type:'string' },
     baseline:{ type:'boolean', default:false }, original:{ type:'boolean', default:false }, repeat:{ type:'boolean', default:false },
-    version:{ type:'string' }, reason:{ type:'string' }
+    retest:{ type:'string' }, review:{ type:'string' }, version:{ type:'string' }, reason:{ type:'string' }
   } });
   if (command === 'discover') return intake.discover(values.workspace);
   if (command === 'split') return intake.splitExamples(values);
@@ -49,6 +52,15 @@ async function main() {
   }
   if (command === 'prepare') return W.prepare(input);
   if (command === 'evaluate') return W.evaluate(input);
+  if (command === 'retest-summary') {
+    if (!input.retest) throw new ToolError('INVALID_INPUT','Provide --retest receipts.json');
+    return require('../lib/retest.cjs').summarizeRetest(S.open(path.resolve(input.run)),input.retest);
+  }
+  if (command === 'report-test') {
+    if (!input.plan) throw new ToolError('INVALID_INPUT','Provide --plan with the project test receipt indexes');
+    return require('../lib/test-report.cjs').attachTestReport(input.run,input.plan);
+  }
+  if (command === 'tree-review') return layers.treeReview(S.open(path.resolve(input.run)));
   if (command === 'status') return W.status(S.open(path.resolve(input.run)));
   if (command === 'finalize') return W.finalize(input);
   throw new ToolError('UNKNOWN_COMMAND', 'Unknown command; use --help');
